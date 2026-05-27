@@ -5,8 +5,9 @@
         <p class="eyebrow">Request</p>
         <h2>Probe</h2>
       </div>
-      <button class="primary-button" type="submit" :disabled="loading">
-        {{ loading ? "Sending" : "Send" }}
+      <button class="primary-button" type="submit" :disabled="loading" :aria-busy="loading">
+        <span v-if="loading" class="button-spinner" aria-hidden="true"></span>
+        <span>{{ loading ? "Sending" : "Send" }}</span>
       </button>
     </div>
 
@@ -59,7 +60,7 @@ function submitRequest() {
   localError.value = "";
   const parsedUrl = parseUrl(url.value);
   if (!parsedUrl) {
-    localError.value = "Enter a valid http or https URL.";
+    localError.value = "Invalid URL format. Enter a complete http or https URL.";
     return;
   }
 
