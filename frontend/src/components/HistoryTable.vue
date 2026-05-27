@@ -27,7 +27,7 @@
             </td>
             <td><span class="method-tag">{{ item.method }}</span></td>
             <td class="url-cell" :title="item.error_message || item.url">{{ item.url }}</td>
-            <td>{{ item.status_code ?? "N/A" }}</td>
+            <td><span class="http-status" :class="statusClass(item.status_code)">{{ item.status_code ?? "N/A" }}</span></td>
             <td>{{ item.response_time_ms ?? "N/A" }} ms</td>
             <td>{{ formatDate(item.created_at) }}</td>
           </tr>
@@ -52,5 +52,21 @@ function formatDate(value) {
     hour: "2-digit",
     minute: "2-digit"
   }).format(new Date(value));
+}
+
+function statusClass(status) {
+  if (!status) {
+    return "status-muted";
+  }
+  if (status >= 200 && status < 300) {
+    return "status-2xx";
+  }
+  if (status >= 300 && status < 400) {
+    return "status-3xx";
+  }
+  if (status >= 400 && status < 500) {
+    return "status-4xx";
+  }
+  return "status-5xx";
 }
 </script>

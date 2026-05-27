@@ -1,4 +1,4 @@
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
+const API_BASE_URL = resolveApiBaseUrl();
 
 export async function healthCheck() {
   return request("/health");
@@ -50,4 +50,25 @@ function formatApiError(data, status) {
     return data;
   }
   return `Request failed with status ${status}.`;
+}
+
+function resolveApiBaseUrl() {
+  const configuredUrl = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
+  try {
+    const parsed = new URL(configuredUrl);
+    const browserHost = window.location.hostname;
+    const configuredHost = parsed.hostname;
+    const shouldUseCurrentHost =
+      ["localhost", "127.0.0.1"].includes(configuredHost) &&
+      browserHost &&
+      !["localhost", "127.0.0.1"].includes(browserHost);
+
+    if (shouldUseCurrentHost) {
+      parsed.hostname = browserHost;
+    }
+
+    return parsed.toString().replace(/\/$/, "");
+  } catch {
+    return configuredUrl.replace(/\/$/, "");
+  }
 }

@@ -50,14 +50,26 @@ def execute_api_request(
             response_headers=_safe_response_headers(response),
             error_message=None,
         )
+    except httpx.ConnectTimeout:
+        return _failure(start, f"Connection timeout. The server did not accept a connection within {settings.request_timeout_seconds:g} seconds.")
+    except httpx.ReadTimeout:
+        return _failure(start, f"Read timeout. The server did not send a response within {settings.request_timeout_seconds:g} seconds.")
     except httpx.TimeoutException:
-        return _failure(start, "Request timed out.")
+        return _failure(start, f"Timeout. The request did not complete within {settings.request_timeout_seconds:g} seconds.")
     except httpx.ConnectError as exc:
-        return _failure(start, f"Connection failed: {exc}")
+        return _failure(start, f"Connection error. The host could not be reached. {exc}")
+    except httpx.UnsupportedProtocol:
+        return _failure(start, "Invalid URL format. Only http and https requests are supported.")
+    except httpx.InvalidURL:
+        return _failure(start, "Invalid URL format. The URL could not be parsed by the HTTP client.")
+    except httpx.RemoteProtocolError as exc:
+        return _failure(start, f"Protocol error. The server returned an invalid HTTP response. {exc}")
+    except httpx.TransportError as exc:
+        return _failure(start, f"Network error. The request could not be completed. {exc}")
     except httpx.HTTPError as exc:
-        return _failure(start, f"HTTP client error: {exc}")
+        return _failure(start, f"HTTP client error. {exc}")
     except Exception as exc:
-        return _failure(start, f"Unexpected request error: {exc}")
+        return _failure(start, f"Unexpected request error. {exc}")
 
 
 def _failure(start: float, message: str) -> ApiClientResult:
