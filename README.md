@@ -23,6 +23,9 @@ Vue 3 UI
 
 ```text
 api-pulse/
+  .github/
+    workflows/
+      quality.yml
   docker-compose.yml
   .env.example
   README.md
@@ -201,6 +204,34 @@ docker compose exec -T frontend npm run build
 docker compose exec -T frontend npm run lint
 docker compose exec -T frontend npm audit --omit=optional
 ```
+
+## Continuous Integration
+
+GitHub Actions runs the CI workflow defined in:
+
+```text
+.github/workflows/quality.yml
+```
+
+The workflow runs on:
+
+- Pull requests targeting `main`.
+- Pushes to `main`.
+
+It validates:
+
+- Backend Python compilation with `python -m compileall app`.
+- Backend tests with `pytest`.
+- Backend lint with `ruff check app tests`.
+- Frontend dependency installation with `npm ci`.
+- Frontend production build with `npm run build`.
+- Frontend lint with `npm run lint`.
+- Frontend dependency audit with `npm audit --omit=optional`.
+- Docker Compose syntax and interpolation with `docker compose config`.
+
+The CI workflow does not deploy, does not create releases or tags, does not require secrets, and does not start the full Docker Compose stack yet.
+
+CI badge is intentionally not included yet because the workflow has not completed a successful run in GitHub Actions.
 
 ## API Endpoints
 
