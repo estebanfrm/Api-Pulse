@@ -2,10 +2,10 @@ FROM node:22-alpine
 
 WORKDIR /app
 
-COPY package.json .
-RUN npm install
+COPY package.json package-lock.json ./
+RUN npm ci
 
-COPY index.html vite.config.js ./
+COPY index.html vite.config.js eslint.config.js ./
 COPY src ./src
 
 EXPOSE 5173
