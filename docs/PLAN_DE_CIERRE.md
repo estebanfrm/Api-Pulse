@@ -12,7 +12,7 @@ T00 Contexto y documentación (completado)
   -> T04 Decisiones de demo y alojamiento (completado)
   -> T05 Controles para exposición pública (completado localmente)
   -> T06 Configuración de producción (preparada localmente)
-  -> T07 Despliegue y verificación (siguiente)
+  -> T07 Despliegue y verificación (iniciado; publicación externa pendiente)
   -> T08 Presentación final del portafolio
 ~~~
 
@@ -101,7 +101,7 @@ Preparar una propuesta concreta sobre:
 
 **Aceptación local:** casos de pruebas de cada límite y ruta de rechazo, destinos de prueba controlados y valores documentados. La comprobación de los mismos controles en el entorno público corresponde a T07; no se declara aprobada anticipadamente.
 
-**Resultado:** el modo público usa exclusivamente cuatro escenarios sintéticos por `httpx.MockTransport`, sin resolución DNS ni socket hacia hosts del visitante. Admite GET/POST/PUT/DELETE y conserva `success=true` para 404/500 y 302 sin seguimiento. URL fuera del catálogo se registra como rechazo seguro; el cuerpo de entrada tiene tope de 16 KiB (413), la respuesta de 64 KiB, timeout configurado de 8 s y cuotas en memoria por IP de 10/minuto y 2 concurrentes, más 60/minuto y 10 concurrentes globales (429). El historial compartido guarda solo URL canónica, método, estado, tiempo, resumen seguro y error genérico; poda filas de más de 24 h, filas heredadas no reconocidas y exceso sobre 500 al iniciar, crear o listar. El frontend público presenta un selector y aviso de privacidad; el Compose local/integrado conserva el modo anterior explícitamente. Se aprobaron 62 tests backend, Ruff, 5 tests frontend, lint, build y validación sintáctica de ambos Compose. Docker Engine no estaba disponible para repetir PostgreSQL o navegador en este bloque; Neon, proxy y cuotas con tráfico real quedan para T06/T07. Cambios aún sin commit.
+**Resultado:** el modo público usa exclusivamente cuatro escenarios sintéticos por `httpx.MockTransport`, sin resolución DNS ni socket hacia hosts del visitante. Admite GET/POST/PUT/DELETE y conserva `success=true` para 404/500 y 302 sin seguimiento. URL fuera del catálogo se registra como rechazo seguro; el cuerpo de entrada tiene tope de 16 KiB (413), la respuesta de 64 KiB, timeout configurado de 8 s y cuotas en memoria por IP de 10/minuto y 2 concurrentes, más 60/minuto y 10 concurrentes globales (429). El historial compartido guarda solo URL canónica, método, estado, tiempo, resumen seguro y error genérico; poda filas de más de 24 h, filas heredadas no reconocidas y exceso sobre 500 al iniciar, crear o listar. El frontend público presenta un selector y aviso de privacidad; el Compose local/integrado conserva el modo anterior explícitamente. Se aprobaron 62 tests backend, Ruff, 5 tests frontend, lint, build y validación sintáctica de ambos Compose. Docker Engine no estaba disponible para repetir PostgreSQL o navegador en este bloque; Neon, proxy y cuotas con tráfico real quedan para T06/T07. La preparación se guardó después en el commit local `1f373b4` durante T07.
 
 ## T06 — Construir configuración reproducible de producción
 
@@ -121,11 +121,13 @@ Preparar una propuesta concreta sobre:
 
 ## T07 — Publicar y comprobar
 
-**Estado: pendiente.** RP01/RP03/RP05–RP07/RP09.
+**Estado: en curso desde 2026-09-19; código en PR #4, despliegue externo pendiente de acceso a Render/Neon y CI aún no verde.** RP01/RP03/RP05–RP07/RP09.
 
 Publicar cuando las decisiones y condiciones de T04–T06 estén resueltas. Si una acción exige autorización adicional, preparar primero el resultado concreto que se va a publicar.
 
 **Aceptación:** URL HTTPS real accesible; flujo completo, CORS y límites funcionando desde el dominio final; historial correcto según política; CI del commit publicado comprobada; registro de versión, fecha y rollback. En el plan gratuito, comprobar además una visita después de al menos 15 minutos de inactividad, recuperación del backend/Neon y consumo dentro de cuotas. No cerrar con una URL supuesta o únicamente localhost.
+
+**Avance:** `main` público seguía en `7399e86`; se creó y publicó `codex/api-pulse-t07-publication` con el commit `1f373b4` de T00–T06 y el [PR #4 en borrador](https://github.com/estebanfrm/Api-Pulse/pull/4). Se repitieron backend (72 aprobadas, 1 smoke omitido), Ruff, compilación, frontend (7 aprobadas), lint, build público y Compose. `git diff --cached --check` aprobó tras corregir un espacio final documental. En la [primera CI](https://github.com/estebanfrm/Api-Pulse/actions/runs/35457179818), Backend, PostgreSQL smoke y Compose aprobaron; Frontend aprobó instalación, tests, build y lint, pero `npm audit` falló por 503 del endpoint bulk de npm y 400 del fallback quick. No se alteraron dependencias ni se desactivó el control. Render y Neon mostraron inicio de sesión; no hay recursos ni URL real. La tarea sigue abierta. Siguiente acción: reintentar auditoría cuando npm responda, confirmar límites USD 0 en las cuentas y ejecutar el despliegue verificable.
 
 ## T08 — Cerrar presentación y relevo final
 

@@ -7,8 +7,8 @@
 - Worktree utilizado para T01–T06: `C:\Users\giral\.codex\worktrees\7c72\api-pulse`.
 - El checkout fuente histórico está en `C:\Users\giral\OneDrive\Documentos\Esteban\api-pulse`; la ruta antigua `nwep` no existe.
 - Repositorio: [estebanfrm/Api-Pulse](https://github.com/estebanfrm/Api-Pulse).
-- Base: commit `7399e86`; el worktree está en `HEAD` separado y los cambios de T00–T06 siguen sin commit.
-- `origin/main` coincide en las referencias locales; no se comprobó la actualidad del remoto.
+- Base: commit `7399e86`; T00–T06 se guardaron en `1f373b4`, rama publicada `codex/api-pulse-t07-publication` y PR #4 en borrador.
+- Git confirmó `origin/main` en `7399e86` el 2026-09-19. La primera consulta dentro del sandbox falló por red; fuera del sandbox se confirmó el hash y se publicó la rama sin modificar `main`.
 - T01 modificó pruebas, documentación y las versiones frontend necesarias para cerrar la auditoría. T02 modificó la coordinación y presentación de estados frontend, añadió sus pruebas y extendió la CI. T03 añadió un stack de integración aislado y su destino controlado. T04 preparó la propuesta aprobada. T05 implementó el modo público acotado y su historial. T06 preparó Render/Neon, configuración cerrada de producción, readiness y smoke CI de PostgreSQL aún no ejecutado. Se preservaron los contratos locales al fijar `PUBLIC_DEMO=false` en los Compose de desarrollo/integración.
 
 ## Implementado por inspección
@@ -26,11 +26,11 @@
 
 ## Hallazgos prioritarios
 
-1. **Configuración preparada, despliegue pendiente.** D08–D12 están aprobadas. T05 implementó controles de demo y T06 preparó Render/Neon; faltan sincronización real, CI del commit, verificación pública y archivo MIT. El titular se pedirá en T08. Ver [decisiones](DECISIONES.md) y [guía](DESPLIEGUE_RENDER_NEON.md).
+1. **Código publicado en PR, despliegue pendiente.** D08–D12 están aprobadas. T05 implementó controles de demo y T06 preparó Render/Neon; el commit `1f373b4` está en PR #4. Faltan CI completamente verde, sincronización real, verificación pública y archivo MIT. El titular se pedirá en T08. Ver [decisiones](DECISIONES.md) y [guía](DESPLIEGUE_RENDER_NEON.md).
 2. **Cuotas por proceso/proxy.** Los límites por IP y global son en memoria y no coordinan réplicas. El Blueprint fija un worker y una instancia Free; T07 debe verificar los límites detrás del proxy público, pues varios visitantes podrían compartir IP de par. No se confía en `X-Forwarded-For` enviado por el visitante.
 3. **Modo local distinto del público.** En local continúa la validación DNS antes de httpx sin fijar la IP efectiva; no se ha probado una explotación. No exponer ese modo. En público el catálogo sintético usa `MockTransport`, sin DNS ni socket para los destinos de comprobación.
 4. **Esquema v1 sin migraciones.** `create_all` crea tablas vacías al arrancar, no cambia columnas existentes. T06 no altera el modelo y documenta que un cambio futuro requiere migración explícita, copia previa y rollback. La base Neon no está en la red privada de Render: se protege con credenciales/TLS, no con aislamiento de red entre proveedores.
-5. **CI ampliada pero no ejecutada remotamente.** T03 aporta evidencia local reproducible y T06 añade job PostgreSQL efímero, pero Docker Engine no estuvo disponible para comprobar ese job localmente; no hay commit publicado ni resultado remoto. La CI no cubre aún navegador/Neon. Ver T07.
+5. **CI ampliada y ejecutada con fallo externo de auditoría.** La primera CI del PR #4 aprobó Backend, PostgreSQL smoke y Compose. Frontend aprobó instalación, pruebas, build y lint; `npm audit` falló cuando el endpoint bulk de npm respondió 503 y el fallback quick 400. No se atribuye ese 400 al lockfile sin evidencia. La CI no cubre aún navegador/Neon. Ver T07.
 6. **Avisos de deprecación en pruebas.** pytest informa tres avisos en Starlette/FastAPI por `BlockingPortal` y `on_event`. No son fallos actuales, pero deben considerarse al actualizar ese stack.
 
 ## T01 — Pruebas y calidad
@@ -233,7 +233,26 @@ Se añadió `/ready` con `SELECT 1` y 503 genérico si la base falla. `/health` 
 | `render.yaml` y workflow parseados con PyYAML | Dos servicios, referencias internas, auto-deploy apagado y job PostgreSQL esperados; solo validación estructural local |
 | Compose base/integración y `git diff --check` | Aprobados; Compose advirtió que no podía leer la configuración global de Docker y Git avisó solo sobre LF/CRLF |
 
-**No ejecutado:** `render blueprints validate` porque la CLI/servicio Render no está configurada; sincronización de Blueprint, creación Neon y despliegue corresponden a T07. Docker Desktop no habilitó el motor Linux y `com.docker.service` no pudo iniciarse por permisos del sistema, así que el nuevo smoke PostgreSQL no se pudo ejecutar localmente. El job de CI tampoco ha corrido porque no hay commit publicado. No declarar Neon, CI ni la URL pública como aprobados. No se creó ningún recurso ni se generó gasto.
+**Al cierre de T06 no ejecutado:** `render blueprints validate` porque la CLI/servicio Render no estaba configurada; sincronización de Blueprint, creación Neon y despliegue corresponden a T07. Docker Desktop no habilitó el motor Linux y `com.docker.service` no pudo iniciarse por permisos del sistema, así que el nuevo smoke PostgreSQL no se pudo ejecutar localmente. La CI todavía no había corrido; su primer resultado está registrado en T07 abajo. No declarar Neon ni la URL pública como aprobados. T06 no creó recursos de alojamiento.
+
+## T07 — Publicación y verificación
+
+**Estado: en curso el 2026-09-19; PR publicado, despliegue pendiente.** Git confirmó `main` en `7399e86`, la misma base local. Se creó y publicó `codex/api-pulse-t07-publication` con la preparación T00–T06 en `1f373b4`, y se abrió el [PR #4 en borrador](https://github.com/estebanfrm/Api-Pulse/pull/4). El escaneo de patrones de claves en archivos versionables no encontró coincidencias; `.env` está ignorado. La revisión staged detectó y corrigió un espacio final en la documentación antes del commit.
+
+| Comprobación T07 | Resultado |
+| --- | --- |
+| Backend pytest | 72 passed, 1 skipped (smoke PostgreSQL dedicado); 3 avisos de deprecación |
+| Ruff y compilación Python | Aprobados |
+| Frontend `node --test` y ESLint | 7 passed; lint aprobado |
+| Vite build público con origen HTTPS sintético | Aprobado, 17 módulos; requirió acceso de esbuild fuera del sandbox |
+| Compose base/integración | Config aprobada; advertencia de lectura de la configuración global Docker |
+| `git diff --cached --check` | Aprobado tras corregir un espacio final documental |
+| GitHub `main` público | `7399e86` confirmado con `git ls-remote` fuera del sandbox; la primera consulta dentro del sandbox falló por red |
+| Esquema JSON oficial de Render | Intento no concluyente: el esquema actual usa JSON Schema 2020-12 y el Ajv 6.15 disponible solo comprende versiones anteriores; no se alteró `render.yaml` ni se declaró validación semántica |
+
+La [primera CI del PR #4](https://github.com/estebanfrm/Api-Pulse/actions/runs/35457179818) terminó con 3 de 4 jobs aprobados: Backend, PostgreSQL smoke y Docker Compose. Frontend instaló dependencias, pasó 7 pruebas, build y lint; falló solo `npm audit --omit=optional`. El log mostró 503 al consultar `/-/npm/v1/security/advisories/bulk` y luego 400 en `/-/npm/v1/security/audits/quick`, el endpoint alterno. Se reprodujo localmente con npm 10.9.2: el log local también mostró bulk 503 y quick 400. `npm ls --depth=0` presentó las dependencias raíz sin errores. No se modificó el lockfile ni se suprimió la auditoría. [npm explica el fallback](https://docs.npmjs.com/cli/audit/) y muestra mantenimiento programado para el 2026-09-19 en [su página de estado](https://status.npmjs.org/).
+
+**No ejecutado:** validación semántica y sincronización Render, creación Neon, smoke con URL reales, CORS/cuotas tras proxy, persistencia sobre Neon y arranque en frío. Render y Neon mostraron inicio de sesión y no había CLI Render; GitHub se gestionó mediante Git y API con la credencial existente, sin conectar el plugin. No se creó ningún recurso de alojamiento ni se publicó una URL de demo; no se comprobó la facturación de las cuentas. Render documenta que sus servicios Free y Static Site siguen disponibles, pero una cuenta con método de pago puede generar cobros por excedentes de tráfico/build; confirmar el estado de facturación y las cuotas de las cuentas antes de crear recursos. Ver [guía](DESPLIEGUE_RENDER_NEON.md).
 
 ## Historial comprobado con Git
 
@@ -243,13 +262,14 @@ Se añadió `/ready` con `SELECT 1` y 503 genérico si la base falla. `/health` 
 | `33de381`, merge `4bdd924` | 2026-05-27 | Refinamiento de validación y estados de interfaz, PR #1 |
 | `a216136`, merge `29bdc6b` | 2026-05-27 | Herramientas y pruebas, PR #2 |
 | `475f513`, merge `7399e86` | 2026-05-28 | Workflow de CI, PR #3 |
+| `1f373b4` | 2026-09-19 | Preparación T00–T06 publicada en rama y PR #4 en borrador; no desplegada |
 
 Estos nombres de fases provienen de commits. La numeración de validaciones del README histórico describe otra secuencia; no debe usarse como prueba de finalización.
 
 ## Siguiente punto de entrada
 
-Continuar por **T07**: publicar el commit revisado, comprobar la CI (incluido el nuevo smoke PostgreSQL), validar y sincronizar el Blueprint, crear Neon Free y ejecutar el [procedimiento](DESPLIEGUE_RENDER_NEON.md) con las URL reales, sin asumirlas. Confirmar antes de crear que el plan y las cuotas siguen en el presupuesto aprobado de USD 0; no seleccionar servicios pagados. Verificar CORS, cuotas/proxy, historial, persistencia y arranque en frío. No crear `LICENSE` hasta recibir el nombre público exacto del titular en T08. La aceptación completa está en [el plan](PLAN_DE_CIERRE.md).
+Retomar **T07**: reintentar la auditoría npm cuando el registro responda y comprobar que todos los jobs del PR #4 aprueban. Con acceso autenticado a Render y Neon, validar/sincronizar el Blueprint, crear Neon Free y ejecutar el [procedimiento](DESPLIEGUE_RENDER_NEON.md) con las URL reales, sin asumirlas. Confirmar antes de crear que el plan y las cuotas de las cuentas siguen en el presupuesto aprobado de USD 0; no seleccionar servicios pagados. Verificar CORS, cuotas/proxy, historial, persistencia y arranque en frío. No crear `LICENSE` hasta recibir el nombre público exacto del titular en T08. La aceptación completa está en [el plan](PLAN_DE_CIERRE.md).
 
 ## Comprobación de la entrega documental
 
-Se preservó el relevo documental local y el README histórico. T01 cambió pruebas y dependencias frontend; T02 cambió la coordinación/presentación de estados y CI; T03 añadió integración; T04 documentó decisiones; T05 añadió modo público acotado; T06 preparó Blueprint, controles de producción, readiness, build cerrado, smoke CI y guía. Todo sigue como cambios locales sin commit ni publicación.
+Se preservó el relevo documental y el README histórico. T01 cambió pruebas y dependencias frontend; T02 cambió la coordinación/presentación de estados y CI; T03 añadió integración; T04 documentó decisiones; T05 añadió modo público acotado; T06 preparó Blueprint, controles de producción, readiness, build cerrado, smoke CI y guía. T07 publicó el código en PR #4, pero no desplegó la demo.

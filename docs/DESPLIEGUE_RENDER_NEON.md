@@ -1,6 +1,6 @@
 # Despliegue de la demo pública: Render + Neon
 
-**Estado:** procedimiento preparado en T06; no se han creado recursos ni se ha publicado una URL. Ejecutar y verificar en T07. La decisión D09 autoriza solo planes gratuitos, Virginia/N. Virginia y subdominios incluidos, sin compra ni subida de plan.
+**Estado:** procedimiento preparado en T06 y publicado en `1f373b4`/PR #4 en borrador durante T07. No se han creado recursos de alojamiento ni se ha publicado una URL de demo. Falta acceso autenticado a Render y Neon para ejecutar y verificar el resto de T07. La decisión D09 autoriza solo planes gratuitos, Virginia/N. Virginia y subdominios incluidos, sin compra ni subida de plan.
 
 ## Topología y límites
 
@@ -13,7 +13,7 @@ Render [documenta Blueprints, `rootDir`, variables y `sync: false`](https://rend
 
 ## Preparación antes de crear recursos
 
-1. Publicar primero en el repositorio una revisión controlada del código T00–T06 y comprobar la CI del commit. El worktree actual está en `HEAD` separado y los cambios aún no tienen commit; el Blueprint no existe en el remoto hasta ese paso. No copiar `.env` ni secretos.
+1. La revisión T00–T06 ya está publicada en `codex/api-pulse-t07-publication`, commit `1f373b4`, [PR #4 en borrador](https://github.com/estebanfrm/Api-Pulse/pull/4). La primera CI aprobó Backend, PostgreSQL smoke y Compose; Frontend falló solo en auditoría porque npm devolvió 503/400. Repetir la auditoría cuando el registro responda y comprobar el resultado completo antes de fusionar o desplegar. Confirmar que `main` no avanzó desde `7399e86`. No copiar `.env` ni secretos.
 2. Revisar en Render y Neon que los planes gratuitos y las cuotas sigan vigentes. En Render, elegir Free para la API y Static Site gratuito; no crear Render Postgres. Confirmar que una cuenta con método de pago puede incurrir en cargos por uso excedente y establecer alertas/límites de gasto disponibles antes de publicar. Render [explica las horas y cuotas Free](https://render.com/docs/free) y [el posible cobro por ancho de banda](https://render.com/docs/outbound-bandwidth).
 3. Validar `render.yaml` con `render blueprints validate` si se dispone de la CLI autenticada. La validación YAML local comprueba sintaxis, no reemplaza la validación semántica ni la sincronización real de Render.
 
