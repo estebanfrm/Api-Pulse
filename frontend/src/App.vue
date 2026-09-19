@@ -5,67 +5,66 @@
         <p class="eyebrow">HTTP monitor</p>
         <h1>API Pulse</h1>
       </div>
-      <div class="service-pill" :class="{ online: apiOnline }">
-        <span class="dot"></span>
-        <span>{{ apiOnline ? "Online" : "Checking" }}</span>
+      <div class="service-status">
+        <div class="service-pill" :class="serviceStatus" role="status" aria-live="polite">
+          <span class="dot" aria-hidden="true"></span>
+          <span>{{ serviceStatusLabel }}</span>
+        </div>
+        <button
+          v-if="serviceStatus === 'offline'"
+          class="secondary-button"
+          type="button"
+          @click="retryConnection"
+        >
+          Retry connection
+        </button>
       </div>
     </header>
 
     <section class="workspace-grid">
-      <ApiRequestForm :loading="loading" @submit="runCheck" />
-      <ResponsePanel :result="currentResult" :loading="loading" :error="error" />
+      <ApiRequestForm :loading="requestLoading" @submit="runCheck" />
+      <ResponsePanel :result="currentResult" :loading="requestLoading" :error="requestError" />
     </section>
 
     <section class="insights-grid">
       <ResponseTimeChart :history="history" />
-      <HistoryTable :history="history" />
+      <HistoryTable
+        :history="history"
+        :public-demo="publicDemo"
+        :loading="historyLoading"
+        :error="historyError"
+        @retry="refreshHistory"
+      />
     </section>
   </main>
 </template>
 
 <script setup>
-import { onMounted, ref } from "vue";
+import { onMounted } from "vue";
 
 import ApiRequestForm from "./components/ApiRequestForm.vue";
 import HistoryTable from "./components/HistoryTable.vue";
 import ResponsePanel from "./components/ResponsePanel.vue";
 import ResponseTimeChart from "./components/ResponseTimeChart.vue";
+import { useApiDashboard } from "./composables/useApiDashboard";
 import { createCheck, fetchChecks, healthCheck } from "./services/api";
 
-const history = ref([]);
-const currentResult = ref(null);
-const loading = ref(false);
-const error = ref("");
-const apiOnline = ref(false);
+const publicDemo = import.meta.env.VITE_PUBLIC_DEMO !== "false";
 
-onMounted(async () => {
-  await refreshHealth();
-  await refreshHistory();
-});
+const {
+  currentResult,
+  history,
+  historyError,
+  historyLoading,
+  initialize,
+  requestError,
+  requestLoading,
+  refreshHistory,
+  retryConnection,
+  runCheck,
+  serviceStatus,
+  serviceStatusLabel
+} = useApiDashboard({ createCheck, fetchChecks, healthCheck });
 
-async function refreshHealth() {
-  try {
-    await healthCheck();
-    apiOnline.value = true;
-  } catch {
-    apiOnline.value = false;
-  }
-}
-
-async function refreshHistory() {
-  history.value = await fetchChecks();
-}
-
-async function runCheck(payload) {
-  loading.value = true;
-  error.value = "";
-  try {
-    currentResult.value = await createCheck(payload);
-    await refreshHistory();
-  } catch (requestError) {
-    error.value = requestError.message;
-  } finally {
-    loading.value = false;
-  }
-}
+onMounted(initialize);
 </script>

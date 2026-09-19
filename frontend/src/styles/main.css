@@ -196,8 +196,39 @@ textarea:hover {
   opacity: 0.65;
 }
 
+.demo-notice {
+  color: var(--muted);
+  font-size: 0.82rem;
+  line-height: 1.45;
+  margin: -2px 0 14px;
+}
+
+.secondary-button {
+  min-height: 36px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0 12px;
+  background: #111419;
+  color: var(--text);
+  cursor: pointer;
+  font-weight: 800;
+  transition: border-color 160ms ease, background 160ms ease;
+}
+
+.secondary-button:hover:not(:disabled),
+.secondary-button:focus-visible {
+  border-color: var(--accent);
+  background: #17201e;
+}
+
+.secondary-button:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
 .service-pill,
 .status-badge,
+.state-badge,
 .method-tag,
 .count,
 .http-status {
@@ -218,8 +249,7 @@ textarea:hover {
   justify-content: center;
 }
 
-.dot,
-.tiny-state {
+.dot {
   width: 9px;
   height: 9px;
   border-radius: 999px;
@@ -230,17 +260,46 @@ textarea:hover {
   gap: 8px;
 }
 
-.service-pill.online .dot,
-.status-badge.success,
-.tiny-state.success {
+.service-status {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.service-pill.online {
+  border-color: rgba(52, 211, 153, 0.4);
+  color: var(--accent);
+}
+
+.service-pill.online .dot {
+  background: var(--accent-strong);
+}
+
+.service-pill.offline {
+  border-color: rgba(251, 113, 133, 0.4);
+  color: var(--danger);
+}
+
+.service-pill.offline .dot {
+  background: var(--danger);
+}
+
+.status-badge.received,
+.state-badge.received {
   background: rgba(52, 211, 153, 0.2);
   color: var(--accent);
 }
 
 .status-badge.failed,
-.tiny-state.failed {
+.state-badge.failed {
   background: rgba(251, 113, 133, 0.16);
   color: var(--danger);
+}
+
+.state-badge {
+  min-width: 92px;
+  justify-content: center;
 }
 
 .metric-row {
@@ -351,6 +410,42 @@ textarea:hover {
   font-size: 0.76rem;
   font-weight: 900;
   text-transform: uppercase;
+}
+
+.response-note {
+  border-left: 3px solid var(--warning);
+  padding: 10px 12px;
+  background: rgba(248, 193, 77, 0.08);
+  color: #fde68a;
+  line-height: 1.45;
+}
+
+.history-meta {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.inline-status {
+  color: var(--accent);
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.history-error {
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  margin-bottom: 14px;
+}
+
+.history-error > div {
+  display: grid;
+  gap: 8px;
+}
+
+.empty-state.compact {
+  min-height: 180px;
 }
 
 .loading-state {
@@ -469,8 +564,22 @@ th {
   }
 
   .primary-button,
+  .service-status,
   .service-pill {
     width: 100%;
+  }
+
+  .service-status,
+  .history-error {
+    grid-template-columns: 1fr;
+  }
+
+  .service-status {
+    display: grid;
+  }
+
+  .history-meta {
+    justify-content: flex-start;
   }
 
   .request-form,

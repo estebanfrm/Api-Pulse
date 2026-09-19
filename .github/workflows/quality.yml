@@ -30,13 +30,52 @@ jobs:
           pip install -r requirements-dev.txt
 
       - name: Compile Python files
-        run: python -m compileall app
+        run: python -m compileall app tests ../tests/integration
 
       - name: Run tests
         run: pytest
 
       - name: Run Ruff
-        run: ruff check app tests
+        run: ruff check app tests ../tests/integration
+
+  postgres-smoke:
+    name: PostgreSQL smoke
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: api_pulse
+          POSTGRES_PASSWORD: ci_test_only
+          POSTGRES_DB: api_pulse
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U api_pulse -d api_pulse"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql+psycopg://api_pulse:ci_test_only@localhost:5432/api_pulse
+      PUBLIC_DEMO: "true"
+      TEST_POSTGRES_SMOKE: "1"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install -r requirements-dev.txt
+
+      - name: Smoke test public demo and persistence
+        run: pytest tests/test_postgres_smoke.py
 
   frontend:
     name: Frontend
@@ -58,6 +97,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Run tests
+        run: npm test
+
       - name: Build
         run: npm run build
 
@@ -76,3 +118,6 @@ jobs:
 
       - name: Validate compose config
         run: docker compose config
+
+      - name: Validate integration compose config
+        run: docker compose -p api-pulse-t03 -f compose.integration.yml config --quiet

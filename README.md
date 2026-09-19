@@ -1,272 +1,79 @@
 # API Pulse
 
-API Pulse is a full-stack MVP for testing HTTP APIs, tracking response times, and reviewing request history from a polished dark-mode interface.
+Aplicación para probar APIs HTTP públicas, medir tiempos de respuesta y consultar un historial persistente. Interfaz oscura en Vue 3, API en FastAPI y almacenamiento en PostgreSQL.
 
-## Stack
+**Objetivo acordado:** terminar un proyecto de portafolio con despliegue público. El MVP está implementado; la publicación y la preparación para exposición pública están pendientes.
 
-- Frontend: Vue 3 + Vite
-- Backend: FastAPI + httpx
-- Database: PostgreSQL
-- Infrastructure: Docker and Docker Compose
+## Retomar el proyecto
 
-## Architecture
+1. Lee [el estado verificado](docs/ESTADO_ACTUAL.md).
+2. Sigue [el plan de cierre](docs/PLAN_DE_CIERRE.md), con tareas y criterios de aceptación.
+3. Para continuar con GPT-5.6, usa [el relevo y el prompt de inicio](docs/CONTINUIDAD_GPT_5_6.md).
+4. Consulta [el índice de documentación](docs/README.md) y las instrucciones de [AGENTS.md](AGENTS.md).
 
-```text
-Vue 3 UI
-  -> FastAPI REST API
-    -> SSRF validation
-    -> httpx outbound request
-    -> PostgreSQL history storage
-```
+Corte documental: **15 de septiembre de 2026**, sobre el commit local `7399e86` más cambios de T01/T02/T03 aún sin commit. Esta fecha no certifica despliegue.
 
-## Project Structure
+## Funciones actuales
 
-```text
-api-pulse/
-  .github/
-    workflows/
-      quality.yml
-  docker-compose.yml
-  .env.example
-  README.md
-  backend/
-    Dockerfile
-    requirements.txt
-    requirements-dev.txt
-    pyproject.toml
-    tests/
-      test_*.py
-    app/
-      main.py
-      config.py
-      database.py
-      models.py
-      schemas.py
-      routers/checks.py
-      services/api_client.py
-      services/security.py
-  frontend/
-    Dockerfile
-    package.json
-    package-lock.json
-    index.html
-    eslint.config.js
-    vite.config.js
-    src/
-      App.vue
-      main.js
-      services/api.js
-      components/
-      styles/main.css
-```
+- Solicitudes manuales GET, POST, PUT y DELETE con cabeceras y cuerpo JSON.
+- Resultado con código HTTP, tiempo y contenido JSON o texto.
+- Historial de las últimas 50 comprobaciones en la interfaz.
+- Gráfica de las últimas 12 comprobaciones con respuesta y tiempo válido.
+- Validación de URL y bloqueo de direcciones locales o privadas.
+- Pruebas de backend y flujo de calidad de GitHub Actions.
 
-## Screenshots
+`success=true` significa que se recibió una respuesta HTTP: también puede acompañar a un 404 o un 500. Consulta el [contrato de la API](docs/API.md). Las solicitudes son manuales; todavía no existe un monitor programado.
 
-Validated dashboard screenshot:
+## Vista del MVP
 
-```text
-docs/screenshots/dashboard.png
-```
+![Panel de API Pulse](docs/screenshots/dashboard.png)
 
-Placeholders for future product screenshots:
+Captura histórica existente, de mayo de 2026. La evidencia visual del despliegue final sigue pendiente.
 
-```text
-docs/screenshots/request-result.png
-docs/screenshots/history-chart.png
-```
+## Inicio local con Docker
 
-## Run With Docker
+Requisitos: Docker Engine activo y Docker Compose. Ejecuta los comandos desde la raíz real del repositorio.
 
-```bash
-docker compose up --build
-```
-
-Frontend:
-
-```text
-http://localhost:5173
-```
-
-Backend:
-
-```text
-http://localhost:8000
-```
-
-### Alternate Frontend Port
-
-If port `5173` is already used by another project, run API Pulse with a different frontend port. For example, in PowerShell:
-
-```powershell
-$env:FRONTEND_PORT="5174"
-$env:FRONTEND_ORIGIN="http://localhost:5174"
+~~~powershell
+# Opcional: crear configuración local sin sobrescribir una existente.
+if (-not (Test-Path .env)) { Copy-Item .env.example .env }
 docker compose up --build -d
-```
+docker compose ps
+~~~
 
-Frontend with the alternate port:
+- Interfaz: http://localhost:5173
+- API: http://localhost:8000
+- Contrato interactivo de FastAPI: http://localhost:8000/docs
+- Salud del proceso: http://localhost:8000/health
 
-```text
-http://localhost:5174
-```
+Si el puerto 5173 está ocupado:
 
-Do not stop or modify unrelated containers from other projects, such as `soat-frontend`. Use `FRONTEND_PORT` to avoid port conflicts during local audits.
-
-## Environment
-
-Copy `.env.example` to `.env` if you want to override defaults.
-
-```text
-POSTGRES_USER=api_pulse
-POSTGRES_PASSWORD=api_pulse_password
-POSTGRES_DB=api_pulse
-DATABASE_URL=postgresql+psycopg://api_pulse:api_pulse_password@postgres:5432/api_pulse
-BACKEND_PORT=8000
-FRONTEND_PORT=5173
-VITE_API_BASE_URL=http://localhost:8000
-```
-
-## Quality Gates
-
-API Pulse includes reproducible backend and frontend quality checks intended to run inside Docker.
-
-Start the stack for audit work with the alternate frontend port when `5173` is busy:
-
-```powershell
-$env:FRONTEND_PORT="5174"
-$env:FRONTEND_ORIGIN="http://localhost:5174"
+~~~powershell
+$env:FRONTEND_PORT = "5174"
+$env:FRONTEND_ORIGIN = "http://localhost:5174"
 docker compose up --build -d
-```
+~~~
 
-Check container health:
+Configuración completa, puertos y comandos de calidad: [desarrollo y validación](docs/DESARROLLO_Y_VALIDACION.md). Este Compose utiliza Vite en modo desarrollo y no es una configuración final de producción.
 
-```bash
-docker compose ps
-```
+## Estructura
 
-### Backend Checks
+~~~text
+AGENTS.md                  Instrucciones para trabajar con el repositorio
+backend/app/               API, persistencia y cliente HTTP saliente
+backend/tests/             Pruebas de backend
+frontend/src/              Interfaz Vue y servicio de acceso a la API
+.github/workflows/         Verificaciones automatizadas
+docker-compose.yml         Entorno local
+compose.integration.yml    Stack aislado de validación con destino controlado
+tests/integration/         Servidor HTTP exclusivo de las pruebas integradas
+docs/                      Requisitos, decisiones, arquitectura y continuidad
+~~~
 
-Compile Python files:
+## Estado de calidad
 
-```bash
-docker compose exec -T backend python -m compileall app
-```
+Verificado localmente en T01/T02/T03: 40 casos de pytest, 4 pruebas frontend, Ruff, compilación Python, configuración de Compose, instalación reproducible, build, lint y auditoría con cero vulnerabilidades conocidas. El flujo completo se comprobó con PostgreSQL 16 real y un destino HTTP controlado dentro de una red Docker aislada: cuatro métodos, 404/500/302, bloqueo privado, validación 422, historial, gráfica, fechas y persistencia tras reinicio/recarga, sin modificar servicios públicos.
 
-Run backend tests:
+**Pendiente:** decisiones de demo y alojamiento público, endurecimiento para exposición, producción y confirmación de CI para un commit publicado.
 
-```bash
-docker compose exec -T backend pytest
-```
-
-Run backend lint:
-
-```bash
-docker compose exec -T backend ruff check app tests
-```
-
-Backend tests are deterministic and do not make real external HTTP requests. Outbound HTTP behavior and DNS resolution are covered with mocks.
-
-### Frontend Checks
-
-Install frontend dependencies from the lockfile:
-
-```bash
-docker compose exec -T frontend npm ci
-```
-
-Build the Vue app:
-
-```bash
-docker compose exec -T frontend npm run build
-```
-
-Run frontend lint:
-
-```bash
-docker compose exec -T frontend npm run lint
-```
-
-Audit frontend dependencies without optional packages:
-
-```bash
-docker compose exec -T frontend npm audit --omit=optional
-```
-
-### Full Local Audit
-
-```bash
-docker compose config
-docker compose ps
-docker compose exec -T backend python -m compileall app
-docker compose exec -T backend pytest
-docker compose exec -T backend ruff check app tests
-docker compose exec -T frontend npm ci
-docker compose exec -T frontend npm run build
-docker compose exec -T frontend npm run lint
-docker compose exec -T frontend npm audit --omit=optional
-```
-
-## Continuous Integration
-
-GitHub Actions runs the CI workflow defined in:
-
-```text
-.github/workflows/quality.yml
-```
-
-The workflow runs on:
-
-- Pull requests targeting `main`.
-- Pushes to `main`.
-
-It validates:
-
-- Backend Python compilation with `python -m compileall app`.
-- Backend tests with `pytest`.
-- Backend lint with `ruff check app tests`.
-- Frontend dependency installation with `npm ci`.
-- Frontend production build with `npm run build`.
-- Frontend lint with `npm run lint`.
-- Frontend dependency audit with `npm audit --omit=optional`.
-- Docker Compose syntax and interpolation with `docker compose config`.
-
-The CI workflow does not deploy, does not create releases or tags, does not require secrets, and does not start the full Docker Compose stack yet.
-
-CI badge is intentionally not included yet because the workflow has not completed a successful run in GitHub Actions.
-
-## API Endpoints
-
-`GET /health`
-
-Returns service health.
-
-`POST /api/checks`
-
-Runs an API request and stores the result.
-
-```json
-{
-  "url": "https://api.github.com",
-  "method": "GET",
-  "headers": {},
-  "body": {}
-}
-```
-
-`GET /api/checks?limit=50`
-
-Returns recent request history.
-
-## Security Rules
-
-The backend includes SSRF protections for the MVP:
-
-- Only `http` and `https` URLs are allowed.
-- `localhost`, `127.0.0.1`, `0.0.0.0`, `::1`, and `.localhost` hosts are rejected.
-- Hostnames are resolved with DNS before making the outbound request.
-- Private, loopback, link-local, multicast, reserved, and unspecified IP targets are rejected.
-
-## Validation Notes
-
-- Phase 1 validated Docker Compose config and healthy PostgreSQL/backend containers.
-- Phase 2 validated healthcheck, public API request, blocked local/private targets, and persisted history with `success` and `error_message`.
-- Phase 3 validates the full stack, frontend request flow, backend errors, history refresh, and response-time chart.
+Detalle, límites y evidencia en [estado actual](docs/ESTADO_ACTUAL.md). El [README anterior](docs/historico/README-2026-05.md) se conserva como referencia histórica.
