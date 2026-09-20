@@ -4,7 +4,7 @@
 
 **API Pulse:** probador manual de APIs HTTP, con Vue 3/Vite, FastAPI/httpx y PostgreSQL. Objetivo confirmado por el usuario: **proyecto de portafolio con despliegue público**.
 
-Base revisada: `7399e86`; corte 2026-09-20. La preparación T00–T06 está en `1f373b4`, rama `codex/api-pulse-t07-publication` y [PR #4 en borrador](https://github.com/estebanfrm/Api-Pulse/pull/4). D08–D12 están confirmadas: demo acotada, Render Free + Neon Free (USD 0 inicial), historial compartido 24 h/500 registros, interfaz inglesa y MIT. T07 completó [sitio](https://api-pulse-web.onrender.com) desde `a32bc4f` y [API](https://api-pulse-api.onrender.com) desde `98cb6f9`, ambos con CI verde. La visita tras más de 16 minutos sin tráfico conservó Neon; ver [validación T07](VALIDACION_T07.md). En T08 el usuario indicó «API PULSE» como nombre público del titular y se prepararon README, capturas y `LICENSE`; falta CI/publicación final.
+Base revisada: `7399e86`; corte 2026-09-20. La preparación T00–T06 está en `1f373b4`, rama `codex/api-pulse-t07-publication` y [PR #4 en borrador](https://github.com/estebanfrm/Api-Pulse/pull/4). D08–D12 están confirmadas: demo acotada, Render Free + Neon Free (USD 0 inicial), historial compartido 24 h/500 registros, interfaz inglesa y MIT. T07 completó [sitio](https://api-pulse-web.onrender.com) desde `a32bc4f` y [API](https://api-pulse-api.onrender.com) desde `98cb6f9`, ambos con CI verde. La visita tras más de 16 minutos sin tráfico conservó Neon; ver [validación T07](VALIDACION_T07.md). En T08 el usuario indicó «API PULSE» como titular; README, capturas y `LICENSE` están en `ef3fb29` con [CI verde](https://github.com/estebanfrm/Api-Pulse/actions/runs/35540890598). Falta integrar a `main`.
 
 ## Antes de iniciar
 
@@ -50,7 +50,7 @@ La rama pública `main` seguía en `7399e86`; PR #4 permanece en borrador. La au
 
 ## Primera tarea concreta
 
-**Cerrar T08.** Revisar README/capturas, comprobar la CI del commit final y publicar la presentación/licencia en `main` tras verificar el PR; comprobar los enlaces/imágenes desde GitHub. No se cambió código de aplicación en T08.
+**Integrar PR #4 y verificar `main`.** El contenido y la CI T08 aprobaron; comprobar estado de merge, llevar README/licencia a la portada predeterminada y verificar enlaces/captura. No se cambió código de aplicación en T08.
 
 ## Lo que debe recordarse
 
@@ -84,7 +84,8 @@ T07 publicó api-pulse-web.onrender.com desde a32bc4f y api-pulse-api.onrender.c
 desde 98cb6f9, usando Render/Neon Free; ambas CI aprobaron. El PR #4 sigue en
 borrador y D08–D12 están confirmadas. Lee docs/VALIDACION_T07.md. T08 preparó
 README, capturas y LICENSE MIT con el nombre público «API PULSE» dado por el
-usuario. Verifica CI del commit final y publica el PR en main tras revisarlo.
+usuario. La CI de ef3fb29 aprobó. Integra el PR #4 en main tras revisar el
+estado de merge y verifica la portada pública del repositorio.
 
 Conserva el commit publicado de T00–T06, el manifiesto/lockfile actualizado y
 los contratos descritos. T01 auditó sin hallazgos; T07 registró y luego resolvió
