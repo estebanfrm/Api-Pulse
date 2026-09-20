@@ -33,7 +33,7 @@ Persona que visita el portafolio o evalúa el trabajo técnico: abre la demo, ej
 | RP05 | Entorno de producción: frontend compilado, configuración de orígenes y backend, base no expuesta al navegador y secretos externos | Render Free y Neon Free desplegados; secreto solo en backend, CORS exacto y `/ready` comprobados. Entre proveedores no hay red privada | T06/T07 |
 | RP06 | Restaurar/recrear una demo con datos no sensibles y documentar rollback | Recreación de base vacía y rollback de código documentados; no se ejecutó un rollback real ni se promete recuperar historial perdido | T06/T07, límite documentado |
 | RP07 | CI satisfactoria para el commit publicado y prueba integrada con la base de datos elegida | CI de commits desplegados aprobada, incluido smoke PostgreSQL 16; Neon real comprobado en T07 | T03/T06/T07 |
-| RP08 | README final con demo, capturas reales, arquitectura, uso, límites y evidencia de calidad | README/capturas renderizados en GitHub y CI de `ef3fb29` aprobada; falta integrarlos en `main` | T08, paso operativo pendiente |
+| RP08 | README final con demo, capturas reales, arquitectura, uso, límites y evidencia de calidad | README/capturas en `main`, portada pública verificada y CI del merge `0cb28cf` aprobada | T08 completado |
 | RP09 | Flujo principal usable en móvil y escritorio, con teclado y estados de carga/error comprensibles | Recuperación local y vista móvil/escritorio pública comprobadas; tras inactividad se recuperaron datos | T02/T07 |
 | RP10 | Licencia y condiciones de uso de la demo decididas antes de anunciar su reutilización | MIT elegida; usuario indicó «API PULSE» y se creó `LICENSE` en T08 | T04/T08 |
 

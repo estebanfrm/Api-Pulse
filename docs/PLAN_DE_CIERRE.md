@@ -1,6 +1,6 @@
 # Plan de cierre: portafolio con despliegue público
 
-**Objetivo confirmado:** demo pública presentable, reproducible y documentada. Los bloques T00–T08 están completados en la rama; falta integrar el PR #4 en `main` y verificar la portada pública predeterminada.
+**Objetivo alcanzado el 2026-09-20:** demo pública presentable, reproducible y documentada. T00–T08 están completados; el [PR #4](https://github.com/estebanfrm/Api-Pulse/pull/4) se integró en `main` como `0cb28cf`, y la portada pública, captura y licencia MIT se verificaron.
 
 ## Secuencia y dependencias
 
@@ -13,7 +13,7 @@ T00 Contexto y documentación (completado)
   -> T05 Controles para exposición pública (completado localmente)
   -> T06 Configuración de producción (preparada localmente)
   -> T07 Despliegue y verificación (completado con límites documentados)
-  -> T08 Presentación final del portafolio (contenido y CI aprobados; integración a main pendiente)
+  -> T08 Presentación final del portafolio (completado en main)
 ~~~
 
 T04 puede prepararse durante T01–T03. T05/T06 dependen de sus decisiones; T07 requiere la preparación técnica de ambas.
@@ -131,7 +131,7 @@ Publicar cuando las decisiones y condiciones de T04–T06 estén resueltas. Si u
 
 ## T08 — Cerrar presentación y relevo final
 
-**Estado: contenido y comprobaciones completados en la rama el 2026-09-20; integración a `main` pendiente.** RP08/RP10.
+**Estado: completado en `main` el 2026-09-20.** RP08/RP10.
 
 - README con enlaces reales a demo y repositorio.
 - Capturas actuales y explicación breve del problema, recorrido y decisiones técnicas.
@@ -141,7 +141,7 @@ Publicar cuando las decisiones y condiciones de T04–T06 estén resueltas. Si u
 
 **Aceptación:** un visitante entiende el proyecto y puede evaluarlo desde el README sin leer conversaciones de desarrollo.
 
-**Resultado en rama:** el usuario indicó «API PULSE» como titular público; `LICENSE` MIT, README con enlaces reales y resumen inglés, dos capturas actuales, límites y actualización de documentos están preparados. Los 11 enlaces relativos del README existen y su render/imágenes se comprobaron en GitHub; la [CI de `ef3fb29`](https://github.com/estebanfrm/Api-Pulse/actions/runs/35540890598) aprobó los cuatro jobs. No se modificó la aplicación ni se requieren recursos pagados. Falta integrar el PR y verificar la portada predeterminada.
+**Resultado:** el usuario indicó «API PULSE» como titular público; `LICENSE` MIT, README con enlaces reales y resumen inglés, dos capturas actuales, límites y documentación actualizada quedaron en `main` mediante PR #4, merge `0cb28cf`. Los 11 enlaces relativos del README existen; la portada, imagen y reconocimiento MIT se comprobaron en GitHub. Aprobaron la [CI de T08](https://github.com/estebanfrm/Api-Pulse/actions/runs/35541101176) y la [CI del merge en `main`](https://github.com/estebanfrm/Api-Pulse/actions/runs/35541246577), con cuatro jobs cada una. El repositorio público enlaza la demo también desde su campo Homepage. T08 no modificó la aplicación ni requirió recursos pagados.
 
 ## Criterios para dar el proyecto por terminado
 
@@ -152,7 +152,7 @@ Publicar cuando las decisiones y condiciones de T04–T06 estén resueltas. Si u
 - [x] URL pública HTTPS y versiones desplegadas verificadas: API `98cb6f9`, sitio `a32bc4f` con fechas inglesas.
 - [x] Persistencia y recuperación de demo comprobadas sobre Neon tras inactividad; retención 24 h/500 cubierta por pruebas, no observada durante 24 h reales.
 - [x] Flujo móvil/escritorio y recuperación tras inactividad validados; límites de la observación en T07.
-- [x] README final, capturas, licencia MIT y documentación preparados y comprobados en la rama; integración a `main` pendiente.
+- [x] README final, capturas, licencia MIT y documentación integrados en `main`; portada pública comprobada.
 - [x] Limitaciones y siguientes mejoras registradas sin pendientes críticos del alcance público elegido.
 
 ## Cómo cerrar una tarea

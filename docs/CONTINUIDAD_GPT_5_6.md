@@ -4,7 +4,7 @@
 
 **API Pulse:** probador manual de APIs HTTP, con Vue 3/Vite, FastAPI/httpx y PostgreSQL. Objetivo confirmado por el usuario: **proyecto de portafolio con despliegue público**.
 
-Base revisada: `7399e86`; corte 2026-09-20. La preparación T00–T06 está en `1f373b4`, rama `codex/api-pulse-t07-publication` y [PR #4 en borrador](https://github.com/estebanfrm/Api-Pulse/pull/4). D08–D12 están confirmadas: demo acotada, Render Free + Neon Free (USD 0 inicial), historial compartido 24 h/500 registros, interfaz inglesa y MIT. T07 completó [sitio](https://api-pulse-web.onrender.com) desde `a32bc4f` y [API](https://api-pulse-api.onrender.com) desde `98cb6f9`, ambos con CI verde. La visita tras más de 16 minutos sin tráfico conservó Neon; ver [validación T07](VALIDACION_T07.md). En T08 el usuario indicó «API PULSE» como titular; README, capturas y `LICENSE` están en `ef3fb29` con [CI verde](https://github.com/estebanfrm/Api-Pulse/actions/runs/35540890598). Falta integrar a `main`.
+Base inicial `7399e86`; corte 2026-09-20. T00–T08 quedaron integrados en `main` mediante el [PR #4](https://github.com/estebanfrm/Api-Pulse/pull/4), merge `0cb28cf`, con [CI final verde](https://github.com/estebanfrm/Api-Pulse/actions/runs/35541246577). D08–D12 están confirmadas: demo acotada, Render Free + Neon Free (USD 0 inicial), historial compartido 24 h/500 registros, interfaz inglesa y MIT. T07 publicó [sitio](https://api-pulse-web.onrender.com) desde `a32bc4f` y [API](https://api-pulse-api.onrender.com) desde `98cb6f9`; ver [validación T07](VALIDACION_T07.md). T08 llevó README, capturas y `LICENSE` con el titular público «API PULSE» a la portada predeterminada de GitHub.
 
 ## Antes de iniciar
 
@@ -46,11 +46,11 @@ El modo público usa cuatro escenarios sintéticos con `MockTransport`, sin DNS 
 
 ## T07 desplegado y verificado
 
-La rama pública `main` seguía en `7399e86`; PR #4 permanece en borrador. La auditoría npm local devolvió cero vulnerabilidades; el [reintento de CI de `98cb6f9`](https://github.com/estebanfrm/Api-Pulse/actions/runs/35457537980) y la [CI de `a32bc4f`](https://github.com/estebanfrm/Api-Pulse/actions/runs/35533084531) aprobaron Backend, PostgreSQL smoke, Compose y Frontend. Render sincronizó semánticamente el Blueprint y desplegó API Free/Static Site en un workspace Hobby nuevo sin tarjeta; Neon Free usa PostgreSQL 16 en N. Virginia. La primera ejecución API falló porque `FRONTEND_ORIGIN` todavía no estaba listo; el segundo deploy quedó Live. `/health`, `/ready`, cuatro métodos, escenarios de error/redirección, CORS, 413/422/429, privacidad, historial tras recarga y vista móvil aprobaron en las URL reales. Tras más de 16 minutos sin tráfico, la web recuperó `Online`, preservó 11 filas y guardó la 12; el frontend `a32bc4f` mostró `Sep` en el navegador español. Render mostraba USD 0 y cuotas dentro del plan. Ver [evidencia y límites T07](VALIDACION_T07.md).
+Al cierre de T07, `main` seguía en `7399e86` y el PR #4 estaba en borrador; después se integró en T08. La auditoría npm local devolvió cero vulnerabilidades; el [reintento de CI de `98cb6f9`](https://github.com/estebanfrm/Api-Pulse/actions/runs/35457537980) y la [CI de `a32bc4f`](https://github.com/estebanfrm/Api-Pulse/actions/runs/35533084531) aprobaron Backend, PostgreSQL smoke, Compose y Frontend. Render sincronizó semánticamente el Blueprint y desplegó API Free/Static Site en un workspace Hobby nuevo sin tarjeta; Neon Free usa PostgreSQL 16 en N. Virginia. La primera ejecución API falló porque `FRONTEND_ORIGIN` todavía no estaba listo; el segundo deploy quedó Live. `/health`, `/ready`, cuatro métodos, escenarios de error/redirección, CORS, 413/422/429, privacidad, historial tras recarga y vista móvil aprobaron en las URL reales. Tras más de 16 minutos sin tráfico, la web recuperó `Online`, preservó 11 filas y guardó la 12; el frontend `a32bc4f` mostró `Sep` en el navegador español. Render mostraba USD 0 y cuotas dentro del plan. Ver [evidencia y límites T07](VALIDACION_T07.md).
 
-## Primera tarea concreta
+## Siguiente acción si se retoma
 
-**Integrar PR #4 y verificar `main`.** El contenido y la CI T08 aprobaron; comprobar estado de merge, llevar README/licencia a la portada predeterminada y verificar enlaces/captura. No se cambió código de aplicación en T08.
+**No hay un bloque obligatorio pendiente.** Si el usuario solicita seguimiento, comprobar cuotas gratuitas y observar la poda de 24 horas en Neon; más adelante, medir la separación de cuotas entre visitantes detrás del proxy y añadir migraciones explícitas antes de cambiar columnas. No habilitar destinos arbitrarios ni servicios pagados sin decisión nueva.
 
 ## Lo que debe recordarse
 
@@ -63,7 +63,7 @@ La rama pública `main` seguía en `7399e86`; PR #4 permanece en borrador. La au
 - La integración con PostgreSQL real quedó comprobada en T03. El job CI PostgreSQL 16 de T06 aprobó en el primer run del PR #4; aún no prueba Neon.
 - `compose.integration.yml` y su subred sintética son solo para pruebas, no para producción.
 - Proveedor, acceso, historial, idioma y licencia MIT están confirmados; T05/T06 implementaron controles/configuración y T07 desplegó la demo pública. El workspace Render exclusivo no tiene tarjeta; al agotar cuotas puede suspenderse. Vigilar uso.
-- El usuario indicó «API PULSE» como nombre público del titular; `LICENSE` MIT está preparado en T08. No sustituirlo por el usuario de GitHub.
+- El usuario indicó «API PULSE» como nombre público del titular; `LICENSE` MIT ya está en `main`. No sustituirlo por el usuario de GitHub.
 - Render pagado por USD 13,30/mes es solo una alternativa futura y no está autorizado.
 - T07 comprobó una visita tras más de 16 minutos sin tráfico, sin pings artificiales. No hubo evento independiente de Render que demuestre si la instancia llegó a suspenderse; las cuotas visibles estaban dentro del plan.
 - La auditoría frontend quedó en cero tras actualizar Vite y cuatro transitivas; conservar el manifiesto y lockfile juntos.
@@ -71,28 +71,24 @@ La rama pública `main` seguía en `7399e86`; PR #4 permanece en borrador. La au
 ## Prompt listo para pegar
 
 ~~~text
-Continúa API Pulse desde este repositorio. Quiero terminarlo como proyecto
-de portafolio con despliegue público, trabajando con GPT-5.6.
+Continúa API Pulse desde este repositorio con GPT-5.6 si solicito una mejora
+o seguimiento. El cierre de portafolio público T00–T08 ya está completado.
 
 Lee AGENTS.md, docs/CONTINUIDAD_GPT_5_6.md, docs/ESTADO_ACTUAL.md y
 docs/PLAN_DE_CIERRE.md. Comprueba la ruta real y git status. Usa el código
 como evidencia del comportamiento actual y distingue las decisiones
 confirmadas de las propuestas.
 
-T01–T07 están completados con evidencia/limitaciones en docs/ESTADO_ACTUAL.md.
-T07 publicó api-pulse-web.onrender.com desde a32bc4f y api-pulse-api.onrender.com
-desde 98cb6f9, usando Render/Neon Free; ambas CI aprobaron. El PR #4 sigue en
-borrador y D08–D12 están confirmadas. Lee docs/VALIDACION_T07.md. T08 preparó
-README, capturas y LICENSE MIT con el nombre público «API PULSE» dado por el
-usuario. La CI de ef3fb29 aprobó. Integra el PR #4 en main tras revisar el
-estado de merge y verifica la portada pública del repositorio.
+T00–T08 están completados con evidencia/limitaciones en docs/ESTADO_ACTUAL.md.
+El PR #4 se integró en main como 0cb28cf y su CI aprobó. La demo vive en
+api-pulse-web.onrender.com y la API en api-pulse-api.onrender.com, usando
+Render/Neon Free. Lee docs/VALIDACION_T07.md antes de cambiar producción.
+El titular público de LICENSE MIT es «API PULSE», indicado por el usuario.
 
-Conserva el commit publicado de T00–T06, el manifiesto/lockfile actualizado y
-los contratos descritos. T01 auditó sin hallazgos; T07 registró y luego resolvió
-un fallo del servicio npm al reintentar CI. Actualiza estado, plan y decisiones
-afectadas, y deja la siguiente tarea concreta. No confundas la versión de API
-`98cb6f9` con la versión posterior del sitio `a32bc4f`; T08 solo cambió
-documentación y capturas.
+Conserva los contratos y la distinción entre modo público acotado y modo local.
+No confundas la versión de API `98cb6f9` con la del sitio `a32bc4f`;
+T08 solo cambió documentación y capturas. Si hay una nueva tarea, actualiza
+estado, plan y decisiones afectadas y deja una siguiente acción concreta.
 ~~~
 
 ## Cómo mantener el relevo
