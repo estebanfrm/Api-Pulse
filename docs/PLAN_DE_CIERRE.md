@@ -13,7 +13,7 @@ T00 Contexto y documentación (completado)
   -> T05 Controles para exposición pública (completado localmente)
   -> T06 Configuración de producción (preparada localmente)
   -> T07 Despliegue y verificación (completado con límites documentados)
-  -> T08 Presentación final del portafolio
+  -> T08 Presentación final del portafolio (en curso)
 ~~~
 
 T04 puede prepararse durante T01–T03. T05/T06 dependen de sus decisiones; T07 requiere la preparación técnica de ambas.
@@ -131,7 +131,7 @@ Publicar cuando las decisiones y condiciones de T04–T06 estén resueltas. Si u
 
 ## T08 — Cerrar presentación y relevo final
 
-**Estado: pendiente.** RP08/RP10.
+**Estado: en curso desde 2026-09-20.** RP08/RP10.
 
 - README con enlaces reales a demo y repositorio.
 - Capturas actuales y explicación breve del problema, recorrido y decisiones técnicas.
@@ -140,6 +140,8 @@ Publicar cuando las decisiones y condiciones de T04–T06 estén resueltas. Si u
 - Registrar evidencia y mejoras opcionales fuera del alcance.
 
 **Aceptación:** un visitante entiende el proyecto y puede evaluarlo desde el README sin leer conversaciones de desarrollo.
+
+**Avance:** el usuario indicó «API PULSE» como titular público; `LICENSE` MIT, README con enlaces reales y resumen inglés, dos capturas actuales, límites y actualización de documentos están preparados en la rama. Falta comprobar CI del commit final y que la presentación sea visible desde la página pública del repositorio después de integrar el PR. No se modificó la aplicación ni se requieren recursos pagados.
 
 ## Criterios para dar el proyecto por terminado
 

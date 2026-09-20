@@ -4,7 +4,7 @@
 
 **API Pulse:** probador manual de APIs HTTP, con Vue 3/Vite, FastAPI/httpx y PostgreSQL. Objetivo confirmado por el usuario: **proyecto de portafolio con despliegue público**.
 
-Base revisada: `7399e86`; corte 2026-09-20. La preparación T00–T06 está en `1f373b4`, rama `codex/api-pulse-t07-publication` y [PR #4 en borrador](https://github.com/estebanfrm/Api-Pulse/pull/4). D08–D12 están confirmadas: demo acotada, Render Free + Neon Free (USD 0 inicial), historial compartido 24 h/500 registros, interfaz inglesa y MIT. T07 completó [sitio](https://api-pulse-web.onrender.com) desde `a32bc4f` y [API](https://api-pulse-api.onrender.com) desde `98cb6f9`, ambos con CI verde. La visita tras más de 16 minutos sin tráfico conservó Neon; ver [validación T07](VALIDACION_T07.md). El titular para `LICENSE` se pedirá en T08.
+Base revisada: `7399e86`; corte 2026-09-20. La preparación T00–T06 está en `1f373b4`, rama `codex/api-pulse-t07-publication` y [PR #4 en borrador](https://github.com/estebanfrm/Api-Pulse/pull/4). D08–D12 están confirmadas: demo acotada, Render Free + Neon Free (USD 0 inicial), historial compartido 24 h/500 registros, interfaz inglesa y MIT. T07 completó [sitio](https://api-pulse-web.onrender.com) desde `a32bc4f` y [API](https://api-pulse-api.onrender.com) desde `98cb6f9`, ambos con CI verde. La visita tras más de 16 minutos sin tráfico conservó Neon; ver [validación T07](VALIDACION_T07.md). En T08 el usuario indicó «API PULSE» como nombre público del titular y se prepararon README, capturas y `LICENSE`; falta CI/publicación final.
 
 ## Antes de iniciar
 
@@ -50,7 +50,7 @@ La rama pública `main` seguía en `7399e86`; PR #4 permanece en borrador. La au
 
 ## Primera tarea concreta
 
-**Comenzar T08.** Actualizar README con demo/repositorio, resumen inglés y límites; añadir capturas actuales y crear `LICENSE` MIT al recibir el nombre público exacto del titular. No presentar el repositorio como licenciado antes de tener el archivo.
+**Cerrar T08.** Revisar README/capturas, comprobar la CI del commit final y publicar la presentación/licencia en `main` tras verificar el PR; comprobar los enlaces/imágenes desde GitHub. No se cambió código de aplicación en T08.
 
 ## Lo que debe recordarse
 
@@ -63,7 +63,7 @@ La rama pública `main` seguía en `7399e86`; PR #4 permanece en borrador. La au
 - La integración con PostgreSQL real quedó comprobada en T03. El job CI PostgreSQL 16 de T06 aprobó en el primer run del PR #4; aún no prueba Neon.
 - `compose.integration.yml` y su subred sintética son solo para pruebas, no para producción.
 - Proveedor, acceso, historial, idioma y licencia MIT están confirmados; T05/T06 implementaron controles/configuración y T07 desplegó la demo pública. El workspace Render exclusivo no tiene tarjeta; al agotar cuotas puede suspenderse. Vigilar uso.
-- El titular exacto de `LICENSE` no se ha recibido; pedirlo en T08, sin inventarlo desde GitHub.
+- El usuario indicó «API PULSE» como nombre público del titular; `LICENSE` MIT está preparado en T08. No sustituirlo por el usuario de GitHub.
 - Render pagado por USD 13,30/mes es solo una alternativa futura y no está autorizado.
 - T07 comprobó una visita tras más de 16 minutos sin tráfico, sin pings artificiales. No hubo evento independiente de Render que demuestre si la instancia llegó a suspenderse; las cuotas visibles estaban dentro del plan.
 - La auditoría frontend quedó en cero tras actualizar Vite y cuatro transitivas; conservar el manifiesto y lockfile juntos.
@@ -82,15 +82,16 @@ confirmadas de las propuestas.
 T01–T07 están completados con evidencia/limitaciones en docs/ESTADO_ACTUAL.md.
 T07 publicó api-pulse-web.onrender.com desde a32bc4f y api-pulse-api.onrender.com
 desde 98cb6f9, usando Render/Neon Free; ambas CI aprobaron. El PR #4 sigue en
-borrador y D08–D12 están confirmadas. Lee docs/VALIDACION_T07.md. Continúa T08:
-README, capturas y límites. MIT está elegida, pero pide el nombre público exacto
-del titular antes de crear LICENSE.
+borrador y D08–D12 están confirmadas. Lee docs/VALIDACION_T07.md. T08 preparó
+README, capturas y LICENSE MIT con el nombre público «API PULSE» dado por el
+usuario. Verifica CI del commit final y publica el PR en main tras revisarlo.
 
 Conserva el commit publicado de T00–T06, el manifiesto/lockfile actualizado y
 los contratos descritos. T01 auditó sin hallazgos; T07 registró y luego resolvió
 un fallo del servicio npm al reintentar CI. Actualiza estado, plan y decisiones
 afectadas, y deja la siguiente tarea concreta. No confundas la versión de API
-`98cb6f9` con la versión posterior del sitio `a32bc4f`; el código backend no cambió.
+`98cb6f9` con la versión posterior del sitio `a32bc4f`; T08 solo cambió
+documentación y capturas.
 ~~~
 
 ## Cómo mantener el relevo

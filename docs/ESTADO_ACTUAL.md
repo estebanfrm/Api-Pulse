@@ -26,7 +26,7 @@
 
 ## Hallazgos prioritarios
 
-1. **Demo pública verificada; portafolio aún no cerrado.** D08–D12 están aprobadas. Sitio `a32bc4f` y API `98cb6f9` están Live en Render con Neon Free; ambas CI aprobaron. La visita tras más de 16 minutos sin tráfico conservó historial y permitió escribir otra fila. El archivo MIT y README/capturas corresponden a T08 tras recibir el titular. Ver [validación T07](VALIDACION_T07.md).
+1. **Demo pública verificada; presentación final en T08.** D08–D12 están aprobadas. Sitio `a32bc4f` y API `98cb6f9` están Live en Render con Neon Free; ambas CI aprobaron. La visita tras más de 16 minutos sin tráfico conservó historial y permitió escribir otra fila. En T08 se prepararon README, capturas y `LICENSE` MIT con el nombre público «API PULSE» indicado por el usuario; falta verificar/publicar el commit final. Ver [validación T07](VALIDACION_T07.md).
 2. **Cuotas por proceso/proxy.** Los límites por IP y global son en memoria y no coordinan réplicas. El Blueprint fija un worker y una instancia Free. Un cliente recibió 429 tras el límite en Render, pero no se ha demostrado aislamiento entre visitantes distintos que puedan compartir la IP de par. No se confía en `X-Forwarded-For` enviado por el visitante.
 3. **Modo local distinto del público.** En local continúa la validación DNS antes de httpx sin fijar la IP efectiva; no se ha probado una explotación. No exponer ese modo. En público el catálogo sintético usa `MockTransport`, sin DNS ni socket para los destinos de comprobación.
 4. **Esquema v1 sin migraciones.** `create_all` crea tablas vacías al arrancar, no cambia columnas existentes. T06 no altera el modelo y documenta que un cambio futuro requiere migración explícita, copia previa y rollback. La base Neon no está en la red privada de Render: se protege con credenciales/TLS, no con aislamiento de red entre proveedores.
@@ -254,6 +254,14 @@ La [primera CI del PR #4](https://github.com/estebanfrm/Api-Pulse/actions/runs/3
 
 **Actualización 2026-09-20:** `npm audit --omit=optional` local devolvió cero vulnerabilidades; el [segundo intento de CI de `98cb6f9`](https://github.com/estebanfrm/Api-Pulse/actions/runs/35457537980) y la [CI de `a32bc4f`](https://github.com/estebanfrm/Api-Pulse/actions/runs/35533084531) terminaron `success`. Se crearon únicamente Render Free/Static Site en un workspace Hobby nuevo sin tarjeta y Neon Free en N. Virginia. Render sincronizó el Blueprint y desplegó [API](https://api-pulse-api.onrender.com) desde `98cb6f9` y [sitio](https://api-pulse-web.onrender.com) desde `a32bc4f`; este último commit solo cambió frontend/documentación. La primera ejecución de la API falló porque `FRONTEND_ORIGIN` todavía no se había fijado; la segunda quedó Live con CORS correcto. `/health`, `/ready`, cuatro métodos, escenarios 404/500/302, rechazo seguro, 413/422/429, privacidad, recarga y vista móvil aprobaron con datos sintéticos. Tras más de 16 minutos sin tráfico, la web recuperó `Online` en ~14 s, conservó 11 filas de Neon y guardó una nueva; la fecha mostró `Sep` en vez de `sept`. Render mostró USD 0 y cuotas dentro del plan al corte. No se usó la CLI Render; el plan/sync del Dashboard validó semánticamente el Blueprint. **Límites no demostrados:** observar 24 horas de poda real, aislamiento de IP entre visitantes distintos y evento explícito de spin-down. Detalles en [validación T07](VALIDACION_T07.md).
 
+## T08 — Presentación final del portafolio
+
+**Estado: en curso el 2026-09-20.** El usuario indicó «API PULSE» como nombre público del titular. Se preparó `LICENSE` MIT con `Copyright (c) 2026 API PULSE`, contrastado con [SPDX](https://spdx.org/licenses/MIT). El README nuevo enlaza demo/código/licencia, incluye resumen inglés, recorrido, arquitectura, uso local, controles, límites y evidencia. Se conservaron las fuentes históricas sin presentarlas como actuales.
+
+**Capturas:** `docs/screenshots/dashboard-public.png` (1536×1700, 318 979 bytes) y `dashboard-compact.png` (800×1800, 141 489 bytes) provienen del sitio público, con historial sintético y sin credenciales. Se inspeccionaron visualmente. Una primera captura headless de 390 px salió recortada por el tamaño interno del navegador y se descartó; una observación separada de la página real con viewport 390×844 mostró el contenido ajustado y sin desbordamiento horizontal. No se cambió código de frontend/backend ni se requirió nuevo deploy de Render.
+
+**Comprobaciones al preparar el bloque:** `git diff --check` aprobó (solo avisos LF/CRLF); todos los enlaces relativos del README y ambas imágenes existen. Quedan la revisión del commit final, CI del PR y publicación del README/licencia en la rama principal. Las pruebas de aplicación locales no se repitieron porque T08 solo cambia documentación y capturas; la CI del commit final sí debe ejecutarse.
+
 ## Historial comprobado con Git
 
 | Commit | Fecha local | Resultado |
@@ -268,8 +276,8 @@ Estos nombres de fases provienen de commits. La numeración de validaciones del 
 
 ## Siguiente punto de entrada
 
-Continuar **T08**: actualizar README con las URL reales y un resumen inglés, crear capturas y explicar límites; pedir el nombre público exacto del titular antes de crear `LICENSE` MIT. Mantener PR #4 en borrador hasta revisar T08; no fusionar ni seleccionar servicios pagados sin necesidad. La aceptación completa está en [el plan](PLAN_DE_CIERRE.md).
+Cerrar **T08**: revisar el README y las capturas, comprobar CI del commit con licencia, y publicar en `main` únicamente cuando el PR #4 esté listo. Verificar después que la página pública del repositorio muestre los enlaces/imágenes/licencia. No seleccionar servicios pagados. La aceptación completa está en [el plan](PLAN_DE_CIERRE.md).
 
 ## Comprobación de la entrega documental
 
-Se preservó el relevo documental y el README histórico. T01 cambió pruebas y dependencias frontend; T02 cambió la coordinación/presentación de estados y CI; T03 añadió integración; T04 documentó decisiones; T05 añadió modo público acotado; T06 preparó Blueprint, controles de producción, readiness, build cerrado, smoke CI y guía. T07 publicó el código en PR #4, desplegó y verificó la demo; T08 queda pendiente.
+Se preservó el relevo documental y el README histórico. T01 cambió pruebas y dependencias frontend; T02 cambió la coordinación/presentación de estados y CI; T03 añadió integración; T04 documentó decisiones; T05 añadió modo público acotado; T06 preparó Blueprint, controles de producción, readiness, build cerrado, smoke CI y guía. T07 publicó el código en PR #4, desplegó y verificó la demo; T08 prepara la presentación/licencia y requiere CI/publicación final.

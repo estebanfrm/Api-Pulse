@@ -1,6 +1,6 @@
-# Arquitectura actual y preparación del despliegue
+# Arquitectura actual y despliegue público
 
-Descripción del código local tras T06; la infraestructura pública aún no está desplegada.
+Descripción del código tras T07: la demo pública está en [Render](https://api-pulse-web.onrender.com) y usa Neon Free. El modo local y la configuración pública son distintos.
 
 ## Flujo
 
@@ -94,12 +94,12 @@ No se persisten como columnas el body ni las cabeceras de la solicitud. En modo 
 - `Base.metadata.create_all` crea tablas faltantes, no es un sistema de migraciones.
 - Los contenedores reciben código mediante COPY; no hay montaje de fuentes ni recarga de backend configurada.
 
-## Topología de producción preparada en T06
+## Topología de producción desplegada en T07
 
-`render.yaml` prepara un Static Site Render con `frontend/dist` y un Web Service Render Python Free en Virginia. El navegador llama a la URL HTTPS pública de la API; el sitio estático no usa la red privada de Render. La API usa un Neon Free separado en N. Virginia mediante endpoint PostgreSQL agrupado, credenciales externas y TLS con channel binding. La conexión Render → Neon sale por Internet; **no es una base en red privada**. No hay servicio PostgreSQL ni puerto 5432 en Render.
+`render.yaml` define un Static Site Render con `frontend/dist` y un Web Service Render Python Free en Virginia, ambos desplegados. El navegador llama a la [API HTTPS pública](https://api-pulse-api.onrender.com); el sitio estático no usa la red privada de Render. La API usa un Neon Free separado en N. Virginia mediante endpoint PostgreSQL agrupado, credenciales externas y TLS con channel binding. La conexión Render → Neon sale por Internet; **no es una base en red privada**. No hay servicio PostgreSQL ni puerto 5432 en Render.
 
 La URL de API se incorpora al build de Vite por `VITE_API_BASE_URL`; si falta o no es un único origen HTTPS, la compilación pública falla. `FRONTEND_ORIGIN` limita CORS en producción a un único origen HTTPS, métodos GET/POST y cabecera `Content-Type`, sin credenciales ni regex de redes locales. `APP_ENV=production` exige modo público controlado y Neon pooled/TLS. Uvicorn corre con un solo worker y sin access log ni confianza ciega en cabeceras de proxy. El pool SQLAlchemy usa `pool_pre_ping`, recicla conexiones a 240 s y acota a 2 conexiones base más 1 temporal para tolerar suspensión/inicio en frío.
 
-`/health` es liveness sin consulta de base para Render; `/ready` ejecuta un `SELECT 1` y devuelve 503 genérico si Neon no responde. El backend sigue usando `create_all` para el esquema v1, que no migra cambios de columnas; antes de un futuro cambio de esquema se requiere migración explícita y plan de reversión. La CI nueva comprueba startup/persistencia con PostgreSQL 16 efímero, pero no reemplaza la prueba real con Neon y proxy en T07. Ver [procedimiento de despliegue](DESPLIEGUE_RENDER_NEON.md).
+`/health` es liveness sin consulta de base para Render; `/ready` ejecuta un `SELECT 1` y devuelve 503 genérico si Neon no responde. El backend sigue usando `create_all` para el esquema v1, que no migra cambios de columnas; antes de un futuro cambio de esquema se requiere migración explícita y plan de reversión. La CI comprueba startup/persistencia con PostgreSQL 16 efímero y T07 comprobó además Neon y el proxy reales. Ver [procedimiento de despliegue](DESPLIEGUE_RENDER_NEON.md) y [validación T07](VALIDACION_T07.md).
 
-La ruta pública evita la separación DNS/conexión al no tener salidas de red para checks. La ruta local con URLs arbitrarias conserva esa limitación y debe permanecer privada. T07 verificará los controles, el arranque en frío y la persistencia detrás del proxy real y con Neon.
+La ruta pública evita la separación DNS/conexión al no tener salidas de red para checks. La ruta local con URLs arbitrarias conserva esa limitación y debe permanecer privada. T07 verificó controles y persistencia tras más de 16 minutos sin tráfico, aunque no hubo un evento independiente de suspensión efectiva de la instancia.

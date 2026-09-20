@@ -101,7 +101,7 @@ La consulta del historial es de solo lectura, aunque cada check nuevo agrega una
 
 **Confirmada el 2026-09-19: MIT.** El usuario aprobó expresamente MIT después de recibir la explicación de que permite derivados comerciales/cerrados y no obliga a publicar modificaciones. Fuente: respuesta directa «listo, entonces si lo apruebo» al desglose que incluía MIT. La elección no implica que `LICENSE` ya exista ni que el repositorio esté formalmente licenciado.
 
-**Pendiente para T08:** pedir al usuario el nombre público exacto del titular antes de crear `LICENSE` con el texto estándar MIT. No inventar el titular a partir del usuario de GitHub. Hasta que exista el archivo, no presentar el repositorio como ya licenciado bajo MIT. Referencia y consecuencias en la [propuesta T04](PROPUESTA_T04.md#d12--licencia).
+**Cierre T08 del 2026-09-20:** el usuario indicó expresamente «API PULSE» como nombre público del titular. Se creó `LICENSE` con `Copyright (c) 2026 API PULSE` y el texto estándar MIT, contrastado con la [entrada MIT de SPDX](https://spdx.org/licenses/MIT). No se infirió un nombre personal ni se atribuyó la licencia de los servicios de alojamiento al proyecto. Referencia y consecuencias en la [propuesta T04](PROPUESTA_T04.md#d12--licencia).
 
 AGPLv3 se consideró como alternativa, pero no fue la opción aprobada.
 

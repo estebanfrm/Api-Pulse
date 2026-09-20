@@ -2,7 +2,7 @@
 
 **Objetivo confirmado:** proyecto de portafolio con despliegue público (usuario, 2026-09-14).
 
-Los requisitos funcionales actuales se reconstruyen de README, código y pruebas; no existe una especificación original independiente. Los criterios de publicación y cierre son una propuesta técnica para alcanzar el objetivo, y sus decisiones de producto pendientes se identifican expresamente.
+Los requisitos funcionales se reconstruyeron de README, código y pruebas; no existe una especificación original independiente. D08–D12 fueron aprobadas después y la [validación T07](VALIDACION_T07.md) registró su comprobación pública. Los límites observados permanecen explícitos.
 
 ## Usuario y recorrido principal
 
@@ -26,23 +26,23 @@ Persona que visita el portafolio o evalúa el trabajo técnico: abre la demo, ej
 
 | ID | Criterio propuesto de aceptación | Estado | Cierre |
 | --- | --- | --- | --- |
-| RP01 | URL pública HTTPS accesible y enlazada desde README | D09 confirma Render Free + Neon Free y subdominios gratuitos; publicación pendiente | T04 completado, T07 |
-| RP02 | Modo de demo definido: acceso, destinos y métodos permitidos | D08 aprobada; cuatro escenarios sintéticos y cuatro métodos implementados; dominio final sin probar | T04/T05 locales, T07 público |
-| RP03 | Solicitudes salientes acotadas: destino validado al conectar, frecuencia/concurrencia, tiempo y bytes | T05 evita conexión saliente a destinos de usuario; cuotas/bytes y timeout del cliente probados localmente; proxy público pendiente | T05 local, T07 público |
-| RP04 | Historial público con política explícita de visibilidad, redacción y retención; sin tokens de terceros | T05 guarda campos mínimos y poda 24 h/500 al iniciar/crear/listar; Neon no probado | T05 local, T07 público |
-| RP05 | Entorno de producción: frontend compilado, configuración de orígenes y backend, base no expuesta al navegador y secretos externos | T06 preparó Blueprint, build/cors y Neon secreto TLS; Render/Neon sin crear. Entre proveedores no hay red privada | T06 local, T07 público |
-| RP06 | Restaurar/recrear una demo con datos no sensibles y documentar rollback | T06 documentó recreación vacía y rollback de código; procedimiento real no ejecutado | T06 local, T07 público |
-| RP07 | CI satisfactoria para el commit publicado y prueba integrada con la base de datos elegida | T06 añadió job PostgreSQL 16 efímero; no ejecutado local/remoto. Neon final pendiente | T03 local, T06 preparado, T07 público |
-| RP08 | README final con demo, capturas reales, arquitectura, uso, límites y evidencia de calidad | Base documental lista; evidencia final pendiente | T08 |
-| RP09 | Flujo principal usable en móvil y escritorio, con teclado y estados de carga/error comprensibles | Recuperación validada localmente en escritorio, vista móvil y teclado; dominio final pendiente | T02 completado, T07 |
-| RP10 | Licencia y condiciones de uso de la demo decididas antes de anunciar su reutilización | MIT aprobada; falta titular y archivo `LICENSE` | T04 completado, T08 |
+| RP01 | URL pública HTTPS accesible y enlazada desde README | [Sitio](https://api-pulse-web.onrender.com) y API comprobados en T07; README enlaza el sitio | T07/T08 |
+| RP02 | Modo de demo definido: acceso, destinos y métodos permitidos | Demo anónima acotada; cuatro escenarios y cuatro métodos comprobados públicamente | T05/T07 |
+| RP03 | Solicitudes salientes acotadas: destino, frecuencia/concurrencia, tiempo y bytes | Sin egress a destinos de usuario; 413 y 429 observados públicamente. Separación por IP entre distintos visitantes tras proxy no demostrada | T05/T07, límite documentado |
+| RP04 | Historial público con política explícita de visibilidad, redacción y retención; sin tokens de terceros | Neon y redacción verificados; 24 h/500 probado automáticamente, no observado durante 24 horas reales | T05/T07, límite documentado |
+| RP05 | Entorno de producción: frontend compilado, configuración de orígenes y backend, base no expuesta al navegador y secretos externos | Render Free y Neon Free desplegados; secreto solo en backend, CORS exacto y `/ready` comprobados. Entre proveedores no hay red privada | T06/T07 |
+| RP06 | Restaurar/recrear una demo con datos no sensibles y documentar rollback | Recreación de base vacía y rollback de código documentados; no se ejecutó un rollback real ni se promete recuperar historial perdido | T06/T07, límite documentado |
+| RP07 | CI satisfactoria para el commit publicado y prueba integrada con la base de datos elegida | CI de commits desplegados aprobada, incluido smoke PostgreSQL 16; Neon real comprobado en T07 | T03/T06/T07 |
+| RP08 | README final con demo, capturas reales, arquitectura, uso, límites y evidencia de calidad | README y capturas de la demo preparados en T08; verificación del commit final pendiente | T08 |
+| RP09 | Flujo principal usable en móvil y escritorio, con teclado y estados de carga/error comprensibles | Recuperación local y vista móvil/escritorio pública comprobadas; tras inactividad se recuperaron datos | T02/T07 |
+| RP10 | Licencia y condiciones de uso de la demo decididas antes de anunciar su reutilización | MIT elegida; usuario indicó «API PULSE» y se creó `LICENSE` en T08 | T04/T08 |
 
 ## Alcance público decidido e implementado localmente
 
-- La demo pública es anónima y está acotada a escenarios controlados; no acepta hosts arbitrarios. Falta verificarlo en producción.
-- Render Free + Neon Free requieren comprobar persistencia, recuperación y arranque en frío dentro de sus cuotas.
-- El historial compartido público se limita a 24 horas y 500 filas visibles; la redacción y poda se implementaron en T05. El borrado ocurre al iniciar/crear/listar, no durante inactividad.
-- La interfaz seguirá en inglés. MIT fue elegida, pero el titular y el archivo `LICENSE` se resolverán en T08.
+- La demo pública es anónima y está acotada a escenarios controlados; no acepta hosts arbitrarios. Se verificó en Render.
+- Render Free + Neon Free conservaron historial tras más de 16 minutos sin tráfico; no se observó un evento independiente de suspensión efectiva ni se promete disponibilidad.
+- El historial compartido público se limita a 24 horas y 500 filas; la redacción y poda se implementaron en T05. El borrado ocurre al iniciar/crear/listar, no durante inactividad.
+- La interfaz está en inglés. MIT usa el nombre público «API PULSE» indicado por el usuario.
 
 La [propuesta T04](PROPUESTA_T04.md) contiene el alcance inicial y las alternativas examinadas; [decisiones](DECISIONES.md) registra las opciones aprobadas.
 
