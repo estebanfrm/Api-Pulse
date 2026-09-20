@@ -12,7 +12,7 @@ T00 Contexto y documentación (completado)
   -> T04 Decisiones de demo y alojamiento (completado)
   -> T05 Controles para exposición pública (completado localmente)
   -> T06 Configuración de producción (preparada localmente)
-  -> T07 Despliegue y verificación (publicado; arranque en frío pendiente)
+  -> T07 Despliegue y verificación (completado con límites documentados)
   -> T08 Presentación final del portafolio
 ~~~
 
@@ -121,13 +121,13 @@ Preparar una propuesta concreta sobre:
 
 ## T07 — Publicar y comprobar
 
-**Estado: en curso desde 2026-09-19; demo publicada el 2026-09-20, falta cerrar prueba en frío y nueva CI.** RP01/RP03/RP05–RP07/RP09.
+**Estado: completado el 2026-09-20 con límites documentados.** RP01/RP03/RP05–RP07/RP09.
 
 Publicar cuando las decisiones y condiciones de T04–T06 estén resueltas. Si una acción exige autorización adicional, preparar primero el resultado concreto que se va a publicar.
 
 **Aceptación:** URL HTTPS real accesible; flujo completo, CORS y límites funcionando desde el dominio final; historial correcto según política; CI del commit publicado comprobada; registro de versión, fecha y rollback. En el plan gratuito, comprobar además una visita después de al menos 15 minutos de inactividad, recuperación del backend/Neon y consumo dentro de cuotas. No cerrar con una URL supuesta o únicamente localhost.
 
-**Avance:** `main` público seguía en `7399e86`; se creó y publicó `codex/api-pulse-t07-publication` con `1f373b4` de T00–T06 y el [PR #4 en borrador](https://github.com/estebanfrm/Api-Pulse/pull/4). El primer run de CI falló solo en auditoría por respuestas 503/400 de npm; la auditoría local posterior encontró cero vulnerabilidades y el [reintento completo del commit `98cb6f9`](https://github.com/estebanfrm/Api-Pulse/actions/runs/35457537980) aprobó. El 2026-09-20 se creó Neon Free en N. Virginia y un workspace Render Hobby aislado sin tarjeta, con API Free en Virginia y sitio estático. Ambos servicios quedaron Live desde `98cb6f9`. Las URL HTTPS, Neon, CORS, métodos, límites, privacidad, historial tras recarga y vista móvil se comprobaron con datos sintéticos; la primera ejecución del backend falló por orden de creación de `FRONTEND_ORIGIN`, pero la siguiente quedó Live. El detalle reproducible está en [validación T07](VALIDACION_T07.md). Quedan nueva CI/despliegue del ajuste de fechas inglesas, persistencia tras arranque en frío y revisión de cuotas antes de completar T07.
+**Resultado:** `main` público seguía en `7399e86`; se creó y publicó `codex/api-pulse-t07-publication` con `1f373b4` de T00–T06 y el [PR #4 en borrador](https://github.com/estebanfrm/Api-Pulse/pull/4). El primer run de CI falló solo en auditoría por respuestas 503/400 de npm; la auditoría local posterior encontró cero vulnerabilidades, el [reintento completo de `98cb6f9`](https://github.com/estebanfrm/Api-Pulse/actions/runs/35457537980) y la [CI de `a32bc4f`](https://github.com/estebanfrm/Api-Pulse/actions/runs/35533084531) aprobaron. Se creó Neon Free en N. Virginia y un workspace Render Hobby aislado sin tarjeta, con API Free en Virginia y sitio estático. API `98cb6f9` y frontend `a32bc4f` quedaron Live. Las URL HTTPS, Neon, CORS, métodos, límites, privacidad, historial tras recarga y vista móvil se comprobaron con datos sintéticos. Tras más de 16 minutos sin tráfico, el sitio recuperó `Online`, mantuvo 11 filas y guardó la 12; la fecha se mostró en inglés. El panel Render mostraba USD 0 y uso dentro de cuotas. La primera ejecución backend falló por orden de creación de `FRONTEND_ORIGIN`, pero la siguiente quedó Live. [Validación T07](VALIDACION_T07.md) registra comandos, versiones, rollback y límites: no se observó la poda durante 24 horas ni un evento explícito de suspensión, y la cuota por IP no se midió desde visitantes distintos.
 
 ## T08 — Cerrar presentación y relevo final
 
@@ -143,13 +143,13 @@ Publicar cuando las decisiones y condiciones de T04–T06 estén resueltas. Si u
 
 ## Criterios para dar el proyecto por terminado
 
-- [ ] Requisitos funcionales del alcance elegidos y comprobados.
+- [x] Requisitos funcionales del alcance elegidos y comprobados para la demo pública.
 - [x] Pruebas incompletas reparadas y controles locales de calidad aprobados.
 - [x] Decisiones de alojamiento, modo de demo y datos cerradas.
 - [x] Controles de solicitudes salientes y acceso implementados localmente y comprobados en la demo pública; falta medir aislamiento entre visitantes distintos tras proxy.
-- [x] URL pública HTTPS y versión inicial `98cb6f9` verificadas; confirmar versión final tras ajuste de fechas.
-- [ ] Persistencia/retención/recuperación de demo comprobadas.
-- [ ] Flujo móvil/escritorio y recuperación de fallos validados.
+- [x] URL pública HTTPS y versiones desplegadas verificadas: API `98cb6f9`, sitio `a32bc4f` con fechas inglesas.
+- [x] Persistencia y recuperación de demo comprobadas sobre Neon tras inactividad; retención 24 h/500 cubierta por pruebas, no observada durante 24 h reales.
+- [x] Flujo móvil/escritorio y recuperación tras inactividad validados; límites de la observación en T07.
 - [ ] README final, capturas, licencia y documentación al día.
 - [ ] Limitaciones y siguientes mejoras registradas sin pendientes críticos del alcance.
 

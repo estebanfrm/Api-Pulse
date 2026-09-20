@@ -4,7 +4,7 @@
 
 **API Pulse:** probador manual de APIs HTTP, con Vue 3/Vite, FastAPI/httpx y PostgreSQL. Objetivo confirmado por el usuario: **proyecto de portafolio con despliegue público**.
 
-Base revisada: `7399e86`; corte 2026-09-20. La preparación T00–T06 está en `1f373b4`, rama `codex/api-pulse-t07-publication` y [PR #4 en borrador](https://github.com/estebanfrm/Api-Pulse/pull/4). D08–D12 están confirmadas: demo acotada, Render Free + Neon Free (USD 0 inicial), historial compartido 24 h/500 registros, interfaz inglesa y MIT. El titular para `LICENSE` se pedirá en T08. T07 publicó [sitio](https://api-pulse-web.onrender.com) y [API](https://api-pulse-api.onrender.com) desde `98cb6f9`; el reintento de CI de ese commit aprobó. Falta CI/despliegue del ajuste de fechas inglesas y prueba de arranque en frío; ver [validación T07](VALIDACION_T07.md).
+Base revisada: `7399e86`; corte 2026-09-20. La preparación T00–T06 está en `1f373b4`, rama `codex/api-pulse-t07-publication` y [PR #4 en borrador](https://github.com/estebanfrm/Api-Pulse/pull/4). D08–D12 están confirmadas: demo acotada, Render Free + Neon Free (USD 0 inicial), historial compartido 24 h/500 registros, interfaz inglesa y MIT. T07 completó [sitio](https://api-pulse-web.onrender.com) desde `a32bc4f` y [API](https://api-pulse-api.onrender.com) desde `98cb6f9`, ambos con CI verde. La visita tras más de 16 minutos sin tráfico conservó Neon; ver [validación T07](VALIDACION_T07.md). El titular para `LICENSE` se pedirá en T08.
 
 ## Antes de iniciar
 
@@ -44,13 +44,13 @@ El modo público usa cuatro escenarios sintéticos con `MockTransport`, sin DNS 
 
 `render.yaml` declara frontend estático y backend Python Free, ambos con despliegue automático apagado. URLs públicas cruzadas alimentan Vite/CORS; Neon se suministra como secreto pooled con TLS/channel binding. Producción falla si usa el modo local, origen HTTP o URL DB insegura. `/health` es liveness sin base; `/ready` comprueba PostgreSQL. La CI añade smoke PostgreSQL efímero. Aprobaron 72 pruebas backend (1 smoke omitido), Ruff, 7 frontend, lint, build público, CORS de producción y parseo YAML. Docker Engine no estuvo disponible para ejecutar el smoke PostgreSQL, y Render/Neon no se han creado. Ver [estado T06](ESTADO_ACTUAL.md#t06--configuración-reproducible-de-producción) y [guía](DESPLIEGUE_RENDER_NEON.md).
 
-## T07 publicado; verificación final pendiente
+## T07 desplegado y verificado
 
-La rama pública `main` seguía en `7399e86`; PR #4 permanece en borrador. La auditoría npm local devolvió cero vulnerabilidades y el [reintento de CI de `98cb6f9`](https://github.com/estebanfrm/Api-Pulse/actions/runs/35457537980) aprobó Backend, PostgreSQL smoke, Compose y Frontend. Render sincronizó semánticamente el Blueprint y desplegó frontend estático y API Free en un workspace Hobby nuevo sin tarjeta; Neon Free usa PostgreSQL 16 en N. Virginia. La primera ejecución API falló porque `FRONTEND_ORIGIN` todavía no estaba listo; el segundo deploy quedó Live. `/health`, `/ready`, cuatro métodos, escenarios de error/redirección, CORS, 413/422/429, privacidad, historial tras recarga y vista móvil aprobaron en las URL reales. El ajuste de fecha inglesa local aprobó 8 pruebas frontend, lint y build; aún debe publicarse y comprobarse su nueva CI. Ver [evidencia T07](VALIDACION_T07.md).
+La rama pública `main` seguía en `7399e86`; PR #4 permanece en borrador. La auditoría npm local devolvió cero vulnerabilidades; el [reintento de CI de `98cb6f9`](https://github.com/estebanfrm/Api-Pulse/actions/runs/35457537980) y la [CI de `a32bc4f`](https://github.com/estebanfrm/Api-Pulse/actions/runs/35533084531) aprobaron Backend, PostgreSQL smoke, Compose y Frontend. Render sincronizó semánticamente el Blueprint y desplegó API Free/Static Site en un workspace Hobby nuevo sin tarjeta; Neon Free usa PostgreSQL 16 en N. Virginia. La primera ejecución API falló porque `FRONTEND_ORIGIN` todavía no estaba listo; el segundo deploy quedó Live. `/health`, `/ready`, cuatro métodos, escenarios de error/redirección, CORS, 413/422/429, privacidad, historial tras recarga y vista móvil aprobaron en las URL reales. Tras más de 16 minutos sin tráfico, la web recuperó `Online`, preservó 11 filas y guardó la 12; el frontend `a32bc4f` mostró `Sep` en el navegador español. Render mostraba USD 0 y cuotas dentro del plan. Ver [evidencia y límites T07](VALIDACION_T07.md).
 
 ## Primera tarea concreta
 
-**Cerrar T07.** Publicar el ajuste de fecha inglesa, comprobar la CI y el sitio actualizado, y hacer una visita tras más de 15 minutos de inactividad para validar recuperación y persistencia en Neon; no usar keep-alive. Revisar cuotas de Render/Neon. Después continuar T08: README, capturas y `LICENSE` al recibir el nombre público exacto del titular.
+**Comenzar T08.** Actualizar README con demo/repositorio, resumen inglés y límites; añadir capturas actuales y crear `LICENSE` MIT al recibir el nombre público exacto del titular. No presentar el repositorio como licenciado antes de tener el archivo.
 
 ## Lo que debe recordarse
 
@@ -65,7 +65,7 @@ La rama pública `main` seguía en `7399e86`; PR #4 permanece en borrador. La au
 - Proveedor, acceso, historial, idioma y licencia MIT están confirmados; T05/T06 implementaron controles/configuración y T07 desplegó la demo pública. El workspace Render exclusivo no tiene tarjeta; al agotar cuotas puede suspenderse. Vigilar uso.
 - El titular exacto de `LICENSE` no se ha recibido; pedirlo en T08, sin inventarlo desde GitHub.
 - Render pagado por USD 13,30/mes es solo una alternativa futura y no está autorizado.
-- T07 aún debe comprobar arranque en frío y cuotas sin usar pings artificiales para mantener servicios gratuitos activos.
+- T07 comprobó una visita tras más de 16 minutos sin tráfico, sin pings artificiales. No hubo evento independiente de Render que demuestre si la instancia llegó a suspenderse; las cuotas visibles estaban dentro del plan.
 - La auditoría frontend quedó en cero tras actualizar Vite y cuatro transitivas; conservar el manifiesto y lockfile juntos.
 
 ## Prompt listo para pegar
@@ -79,19 +79,18 @@ docs/PLAN_DE_CIERRE.md. Comprueba la ruta real y git status. Usa el código
 como evidencia del comportamiento actual y distingue las decisiones
 confirmadas de las propuestas.
 
-T01–T06 están preparados/comprobados según docs/ESTADO_ACTUAL.md. T07 publicó
-la demo desde 98cb6f9 en api-pulse-web.onrender.com y api-pulse-api.onrender.com,
-usando Render/Neon Free. El PR #4 sigue en borrador y D08–D12 están confirmadas.
-Lee docs/VALIDACION_T07.md. Retoma T07: publica y comprueba el ajuste de fecha
-inglesa, verifica su CI y realiza la prueba tras 15 minutos de inactividad sin
-keep-alive. Después continúa T08. MIT está elegida, pero el nombre del titular
-se pedirá antes de crear LICENSE.
+T01–T07 están completados con evidencia/limitaciones en docs/ESTADO_ACTUAL.md.
+T07 publicó api-pulse-web.onrender.com desde a32bc4f y api-pulse-api.onrender.com
+desde 98cb6f9, usando Render/Neon Free; ambas CI aprobaron. El PR #4 sigue en
+borrador y D08–D12 están confirmadas. Lee docs/VALIDACION_T07.md. Continúa T08:
+README, capturas y límites. MIT está elegida, pero pide el nombre público exacto
+del titular antes de crear LICENSE.
 
 Conserva el commit publicado de T00–T06, el manifiesto/lockfile actualizado y
 los contratos descritos. T01 auditó sin hallazgos; T07 registró y luego resolvió
 un fallo del servicio npm al reintentar CI. Actualiza estado, plan y decisiones
-afectadas, y deja la siguiente tarea concreta. Distingue la versión inicial
-desplegada de la versión final aún pendiente de comprobación.
+afectadas, y deja la siguiente tarea concreta. No confundas la versión de API
+`98cb6f9` con la versión posterior del sitio `a32bc4f`; el código backend no cambió.
 ~~~
 
 ## Cómo mantener el relevo

@@ -73,7 +73,7 @@ La alternativa de permitir APIs públicas arbitrarias con autenticación y contr
 
 **Revisión T07 del 2026-09-19:** se confirmó en fuentes públicas que Render todavía ofrece [Web Service Free y Static Site gratuito](https://render.com/docs/free), con suspensión de la API tras 15 minutos sin tráfico, y que [el ancho de banda puede facturarse al superar lo incluido si hay método de pago](https://render.com/docs/outbound-bandwidth). Neon describe [su plan Free vigente](https://neon.com/blog/neon-backend-is-ga). No se pudo confirmar el plan, cuotas disponibles ni método de pago de las cuentas concretas porque Render y Neon mostraron inicio de sesión. D09 no cambia y no autoriza excedentes ni planes pagados. La preparación está publicada en `1f373b4`/PR #4; no hay recursos de alojamiento creados.
 
-**Ejecución T07 del 2026-09-20:** con acceso autenticado se comprobó el plan Hobby de Render y el Free de Neon. Se creó un workspace Render exclusivo `API Pulse` **sin tarjeta** para aislar la demo de otros servicios y evitar cargos automáticos por excedentes; si agota cuotas, Render puede suspender servicios/builds. Allí se creó solo la API Free en Virginia y el sitio estático. Neon Free quedó en `aws-us-east-1` con PostgreSQL 16 y base vacía. El usuario confirmó expresamente crear el proyecto Neon y guardar su URL secreta solo como `DATABASE_URL` del backend Render. No se seleccionaron recursos pagados; el consumo inicial observado era cero. Ver [validación](VALIDACION_T07.md). La decisión D09 no cambia.
+**Ejecución T07 del 2026-09-20:** con acceso autenticado se comprobó el plan Hobby de Render y el Free de Neon. Se creó un workspace Render exclusivo `API Pulse` **sin tarjeta** para aislar la demo de otros servicios y evitar cargos automáticos por excedentes; si agota cuotas, Render puede suspender servicios/builds. Allí se creó solo la API Free en Virginia y el sitio estático. Neon Free quedó en `aws-us-east-1` con PostgreSQL 16 y base vacía. El usuario confirmó expresamente crear el proyecto Neon y guardar su URL secreta solo como `DATABASE_URL` del backend Render. No se seleccionaron recursos pagados; tras el smoke, Render mostraba USD 0 y uso dentro de cuotas, mientras Neon mostraba métricas redondeadas con posible retraso. Ver [validación](VALIDACION_T07.md). La decisión D09 no cambia.
 
 **Alternativa conservada:** Render pagado completo, estimado el 2026-09-15 en USD 13,30/mes, solo si el arranque en frío perjudica el portafolio y el usuario aprueba el gasto en una decisión posterior.
 
@@ -85,7 +85,7 @@ Fuentes técnicas y límites: [propuesta T04](PROPUESTA_T04.md#d09--plataforma-c
 
 **Implementación local T05:** se persisten únicamente URL canónica del escenario, método, estado, latencia, resumen sintético, éxito/error genérico y fecha UTC; no cuerpo, cabeceras, IP, credenciales ni respuesta arbitraria. La IP se usa efímeramente en cuotas. Se borran filas mayores de 24 horas, filas heredadas fuera del formato público y exceso de 500 al iniciar, crear o listar; durante inactividad no hay borrado continuo. Falta verificar la política sobre Neon en T07. Detalle en la [propuesta T04](PROPUESTA_T04.md#d10--historial-público-y-datos).
 
-**Comprobación T07:** el historial compartido se observó tras recargar la web con 11 filas, sin cuerpo ni token sintético, en orden descendente. La política de poda 24 h/500 tiene pruebas automatizadas, pero no se ha observado aún durante 24 horas sobre Neon; falta comprobar persistencia tras arranque en frío.
+**Comprobación T07:** el historial compartido se observó tras recargar la web con 11 filas, sin cuerpo ni token sintético, en orden descendente. Tras más de 16 minutos sin tráfico, la interfaz recuperó esas 11 filas desde Neon y guardó una nueva; no hubo un evento independiente que demostrase suspensión efectiva de la instancia. La política de poda 24 h/500 tiene pruebas automatizadas, pero aún no se ha observado durante 24 horas sobre Neon.
 
 La consulta del historial es de solo lectura, aunque cada check nuevo agrega una entrada; los visitantes no podrán editar ni borrar entradas individualmente.
 
@@ -95,7 +95,7 @@ La consulta del historial es de solo lectura, aunque cada check nuevo agrega una
 
 **Confirmada el 2026-09-19:** mantener la interfaz de la demo en inglés, la documentación operativa en español y añadir un breve resumen en inglés al README final. Sin selector de idioma en este cierre. Fuente: aprobación directa del usuario tras el desglose de esta opción.
 
-**Ajuste T07:** la fecha del historial heredaba el idioma del navegador y mostró `sept` con navegador español. Se fijó `en-US` para los meses visibles y se añadió una prueba; está validado localmente y pendiente de publicar al corte.
+**Ajuste T07:** la fecha del historial heredaba el idioma del navegador y mostró `sept` con navegador español. Se fijó `en-US` para los meses visibles y se añadió una prueba; las comprobaciones locales y la CI aprobaron, y el frontend publicado desde `a32bc4f` mostró `Sep` en ese navegador.
 
 ## D12 — Licencia
 
