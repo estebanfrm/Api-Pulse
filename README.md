@@ -1,272 +1,61 @@
 # API Pulse
 
-API Pulse is a full-stack MVP for testing HTTP APIs, tracking response times, and reviewing request history from a polished dark-mode interface.
+Probador manual de APIs HTTP con resultados, latencia e historial persistente. Esta versión de portafolio tiene una [demo pública](https://api-pulse-web.onrender.com) gratuita y acotada: permite explorar el flujo completo sin enviar solicitudes a servicios de terceros.
 
-## Stack
+**English summary.** API Pulse is an open-source HTTP API testing dashboard built with Vue 3, FastAPI, and PostgreSQL. Its public demo runs four built-in synthetic scenarios for GET, POST, PUT, and DELETE, then displays the response, latency, and a short shared history. The demo is deployed on Render and Neon free tiers; it does not call arbitrary external APIs.
 
-- Frontend: Vue 3 + Vite
-- Backend: FastAPI + httpx
-- Database: PostgreSQL
-- Infrastructure: Docker and Docker Compose
+[Abrir la demo](https://api-pulse-web.onrender.com) · [Ver el código](https://github.com/estebanfrm/Api-Pulse) · [Contrato de la API](docs/API.md) · [Licencia MIT](LICENSE)
 
-## Architecture
+## Qué se puede probar
 
-```text
-Vue 3 UI
-  -> FastAPI REST API
-    -> SSRF validation
-    -> httpx outbound request
-    -> PostgreSQL history storage
-```
+1. Abre la demo y elige **Echo**, **Not found (404)**, **Server error (500)** o **Redirect (302)**. Son escenarios internos: el dominio `.invalid` que aparece en el historial no es un sitio externo.
+2. Selecciona GET, POST, PUT o DELETE. Las cabeceras y el cuerpo, si los usas, deben ser objetos JSON; GET no envía cuerpo. Pulsa **Send**.
+3. Compara el código, el tiempo, la respuesta y el historial. **Response received** significa que hubo respuesta HTTP, incluso si fue 404 o 500; **No response** indica rechazo o fallo antes de recibir una respuesta. La redirección 302 se muestra sin seguirla.
 
-## Project Structure
+La demo es anónima y su historial es **compartido**: muestra los 50 registros más recientes y conserva como máximo 500 durante 24 horas. Guarda solo metadatos sintéticos; no guarda cuerpos, cabeceras, IP ni URL arbitrarias. Aun así, **no introduzcas secretos ni datos personales**. La limpieza se aplica al iniciar, crear o listar comprobaciones, no mediante un proceso continuo durante la inactividad.
 
-```text
-api-pulse/
-  .github/
-    workflows/
-      quality.yml
-  docker-compose.yml
-  .env.example
-  README.md
-  backend/
-    Dockerfile
-    requirements.txt
-    requirements-dev.txt
-    pyproject.toml
-    tests/
-      test_*.py
-    app/
-      main.py
-      config.py
-      database.py
-      models.py
-      schemas.py
-      routers/checks.py
-      services/api_client.py
-      services/security.py
-  frontend/
-    Dockerfile
-    package.json
-    package-lock.json
-    index.html
-    eslint.config.js
-    vite.config.js
-    src/
-      App.vue
-      main.js
-      services/api.js
-      components/
-      styles/main.css
-```
+## Capturas de la demo publicada
 
-## Screenshots
+Capturas tomadas el 20 de septiembre de 2026 con datos sintéticos. El historial visible cambia a medida que se usa la demo.
 
-Validated dashboard screenshot:
+![Panel público de API Pulse: formulario, gráfica e historial](docs/screenshots/dashboard-public.png)
 
-```text
-docs/screenshots/dashboard.png
-```
+[Ver el diseño compacto](docs/screenshots/dashboard-compact.png). La [captura anterior del MVP](docs/screenshots/dashboard.png) se conserva solo como referencia histórica.
 
-Placeholders for future product screenshots:
+## Cómo está construido
 
-```text
-docs/screenshots/request-result.png
-docs/screenshots/history-chart.png
-```
+| Componente | Tecnología | Función |
+| --- | --- | --- |
+| Interfaz | Vue 3 + Vite | Formulario, estados de carga/error, resultado, gráfica y tabla |
+| API | FastAPI + httpx | Valida solicitudes, aplica límites y ejecuta escenarios sintéticos con `MockTransport` |
+| Persistencia | PostgreSQL 16 + SQLAlchemy | Historial compartido y poda de datos |
+| Alojamiento de la demo | Render Static Site/Web Service Free + Neon Free | Sitio HTTPS, API HTTPS y base separada; credenciales solo en el backend |
 
-## Run With Docker
+La demo pública **no acepta destinos arbitrarios**: los cuatro escenarios se resuelven dentro del proceso sin DNS ni sockets hacia el destino indicado por un visitante. El modo local de desarrollo sí admite URLs HTTP(S) con controles de seguridad, pero **no está preparado para exponerse a Internet**. Consulta [arquitectura](docs/ARQUITECTURA.md), [decisiones](docs/DECISIONES.md) y [despliegue](docs/DESPLIEGUE_RENDER_NEON.md).
 
-```bash
-docker compose up --build
-```
+## Ejecutar en local
 
-Frontend:
-
-```text
-http://localhost:5173
-```
-
-Backend:
-
-```text
-http://localhost:8000
-```
-
-### Alternate Frontend Port
-
-If port `5173` is already used by another project, run API Pulse with a different frontend port. For example, in PowerShell:
+Requiere Docker Engine y Docker Compose. Desde la raíz del repositorio:
 
 ```powershell
-$env:FRONTEND_PORT="5174"
-$env:FRONTEND_ORIGIN="http://localhost:5174"
+if (-not (Test-Path .env)) { Copy-Item .env.example .env }
 docker compose up --build -d
-```
-
-Frontend with the alternate port:
-
-```text
-http://localhost:5174
-```
-
-Do not stop or modify unrelated containers from other projects, such as `soat-frontend`. Use `FRONTEND_PORT` to avoid port conflicts during local audits.
-
-## Environment
-
-Copy `.env.example` to `.env` if you want to override defaults.
-
-```text
-POSTGRES_USER=api_pulse
-POSTGRES_PASSWORD=api_pulse_password
-POSTGRES_DB=api_pulse
-DATABASE_URL=postgresql+psycopg://api_pulse:api_pulse_password@postgres:5432/api_pulse
-BACKEND_PORT=8000
-FRONTEND_PORT=5173
-VITE_API_BASE_URL=http://localhost:8000
-```
-
-## Quality Gates
-
-API Pulse includes reproducible backend and frontend quality checks intended to run inside Docker.
-
-Start the stack for audit work with the alternate frontend port when `5173` is busy:
-
-```powershell
-$env:FRONTEND_PORT="5174"
-$env:FRONTEND_ORIGIN="http://localhost:5174"
-docker compose up --build -d
-```
-
-Check container health:
-
-```bash
 docker compose ps
 ```
 
-### Backend Checks
+Abre la interfaz en `http://localhost:5173`, la API en `http://localhost:8000` y la documentación interactiva en `http://localhost:8000/docs`. Este Compose usa Vite de desarrollo y `PUBLIC_DEMO=false`; no es la configuración pública. No uses credenciales reales en pruebas ni publiques ese stack sin un diseño de seguridad nuevo. Para puertos alternativos, pruebas y cierre del stack, consulta [desarrollo y validación](docs/DESARROLLO_Y_VALIDACION.md).
 
-Compile Python files:
+## Calidad y límites
 
-```bash
-docker compose exec -T backend python -m compileall app
-```
+El [workflow de calidad](https://github.com/estebanfrm/Api-Pulse/actions/workflows/quality.yml) ejecuta pruebas de backend/frontend, Ruff, lint, build, auditoría npm, validación de Compose y un smoke con PostgreSQL 16 efímero. La [validación pública de T07](docs/VALIDACION_T07.md) registra pruebas reales de HTTPS, CORS, cuatro métodos, errores, rechazo de destinos externos, privacidad, cuotas, persistencia, navegador y recuperación tras inactividad.
 
-Run backend tests:
+- Los tiempos de la demo corresponden a respuestas **sintéticas**, no miden la latencia de una API remota. No hay monitorización programada ni alertas.
+- Se aplican límites de solicitudes, concurrencia y tamaño. Las cuotas viven en memoria de una única instancia; se comprobó un 429 desde un cliente, pero no la separación por IP entre visitantes distintos detrás del proxy.
+- Render y Neon gratuitos pueden entrar en reposo o agotar sus cuotas. No hay garantía de disponibilidad; el uso observado en T07 fue USD 0. La poda de 24 horas/500 registros tiene pruebas automatizadas, pero no se observó todavía durante 24 horas reales en Neon.
+- Los cambios futuros del esquema requieren migraciones: `create_all` solo crea tablas faltantes. La ruta de desarrollo que admite URLs externas mantiene una limitación DNS/conexión y no debe desplegarse públicamente.
 
-```bash
-docker compose exec -T backend pytest
-```
+Las [limitaciones y siguientes mejoras](docs/ESTADO_ACTUAL.md#hallazgos-prioritarios) están registradas sin presentar capacidades no implementadas como existentes.
 
-Run backend lint:
+## Licencia
 
-```bash
-docker compose exec -T backend ruff check app tests
-```
-
-Backend tests are deterministic and do not make real external HTTP requests. Outbound HTTP behavior and DNS resolution are covered with mocks.
-
-### Frontend Checks
-
-Install frontend dependencies from the lockfile:
-
-```bash
-docker compose exec -T frontend npm ci
-```
-
-Build the Vue app:
-
-```bash
-docker compose exec -T frontend npm run build
-```
-
-Run frontend lint:
-
-```bash
-docker compose exec -T frontend npm run lint
-```
-
-Audit frontend dependencies without optional packages:
-
-```bash
-docker compose exec -T frontend npm audit --omit=optional
-```
-
-### Full Local Audit
-
-```bash
-docker compose config
-docker compose ps
-docker compose exec -T backend python -m compileall app
-docker compose exec -T backend pytest
-docker compose exec -T backend ruff check app tests
-docker compose exec -T frontend npm ci
-docker compose exec -T frontend npm run build
-docker compose exec -T frontend npm run lint
-docker compose exec -T frontend npm audit --omit=optional
-```
-
-## Continuous Integration
-
-GitHub Actions runs the CI workflow defined in:
-
-```text
-.github/workflows/quality.yml
-```
-
-The workflow runs on:
-
-- Pull requests targeting `main`.
-- Pushes to `main`.
-
-It validates:
-
-- Backend Python compilation with `python -m compileall app`.
-- Backend tests with `pytest`.
-- Backend lint with `ruff check app tests`.
-- Frontend dependency installation with `npm ci`.
-- Frontend production build with `npm run build`.
-- Frontend lint with `npm run lint`.
-- Frontend dependency audit with `npm audit --omit=optional`.
-- Docker Compose syntax and interpolation with `docker compose config`.
-
-The CI workflow does not deploy, does not create releases or tags, does not require secrets, and does not start the full Docker Compose stack yet.
-
-CI badge is intentionally not included yet because the workflow has not completed a successful run in GitHub Actions.
-
-## API Endpoints
-
-`GET /health`
-
-Returns service health.
-
-`POST /api/checks`
-
-Runs an API request and stores the result.
-
-```json
-{
-  "url": "https://api.github.com",
-  "method": "GET",
-  "headers": {},
-  "body": {}
-}
-```
-
-`GET /api/checks?limit=50`
-
-Returns recent request history.
-
-## Security Rules
-
-The backend includes SSRF protections for the MVP:
-
-- Only `http` and `https` URLs are allowed.
-- `localhost`, `127.0.0.1`, `0.0.0.0`, `::1`, and `.localhost` hosts are rejected.
-- Hostnames are resolved with DNS before making the outbound request.
-- Private, loopback, link-local, multicast, reserved, and unspecified IP targets are rejected.
-
-## Validation Notes
-
-- Phase 1 validated Docker Compose config and healthy PostgreSQL/backend containers.
-- Phase 2 validated healthcheck, public API request, blocked local/private targets, and persisted history with `success` and `error_message`.
-- Phase 3 validates the full stack, frontend request flow, backend errors, history refresh, and response-time chart.
+El código se publica bajo [MIT](LICENSE). Titular indicado por el usuario: **API PULSE**. Las marcas y condiciones de los proveedores de alojamiento son independientes de esta licencia.

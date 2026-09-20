@@ -63,4 +63,30 @@ def test_validate_public_url_blocks_hostname_when_dns_resolves_to_private_ip(
 
 def test_validate_public_url_rejects_unresolvable_hostname(monkeypatch: pytest.MonkeyPatch) -> None:
     def fake_getaddrinfo(hostname: str, *args: object, **kwargs: object) -> list[tuple[object, ...]]:
-        raise socket.gaierror
+        assert hostname == "missing.example.com"
+        raise socket.gaierror("hostname not found")
+
+    monkeypatch.setattr(security.socket, "getaddrinfo", fake_getaddrinfo)
+
+    with pytest.raises(UrlFormatError) as exc_info:
+        validate_public_url("https://missing.example.com")
+
+    assert str(exc_info.value) == "Invalid URL target. Hostname could not be resolved."
+
+
+def test_validate_public_url_blocks_hostname_with_mixed_public_and_private_dns(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def fake_getaddrinfo(hostname: str, *args: object, **kwargs: object) -> list[tuple[object, ...]]:
+        assert hostname == "mixed.example.com"
+        return [
+            (socket.AF_INET, socket.SOCK_STREAM, 6, "", ("93.184.216.34", 443)),
+            (socket.AF_INET, socket.SOCK_STREAM, 6, "", ("10.0.0.10", 443)),
+        ]
+
+    monkeypatch.setattr(security.socket, "getaddrinfo", fake_getaddrinfo)
+
+    with pytest.raises(BlockedTargetError) as exc_info:
+        validate_public_url("https://mixed.example.com")
+
+    assert "Blocked target" in str(exc_info.value)

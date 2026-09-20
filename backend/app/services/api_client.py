@@ -25,12 +25,16 @@ def execute_api_request(
     method: str,
     headers: dict[str, str] | None,
     body: dict[str, Any] | None,
+    transport: httpx.BaseTransport | None = None,
+    timeout_seconds: float | None = None,
 ) -> ApiClientResult:
     start = perf_counter()
+    effective_timeout = timeout_seconds if timeout_seconds is not None else settings.request_timeout_seconds
     try:
         with httpx.Client(
-            timeout=settings.request_timeout_seconds,
+            timeout=effective_timeout,
             follow_redirects=False,
+            **({"transport": transport} if transport is not None else {}),
         ) as client:
             response = client.request(
                 method=method,
@@ -51,25 +55,25 @@ def execute_api_request(
             error_message=None,
         )
     except httpx.ConnectTimeout:
-        return _failure(start, f"Connection timeout. The server did not accept a connection within {settings.request_timeout_seconds:g} seconds.")
+        return _failure(start, f"Connection timeout. The server did not accept a connection within {effective_timeout:g} seconds.")
     except httpx.ReadTimeout:
-        return _failure(start, f"Read timeout. The server did not send a response within {settings.request_timeout_seconds:g} seconds.")
+        return _failure(start, f"Read timeout. The server did not send a response within {effective_timeout:g} seconds.")
     except httpx.TimeoutException:
-        return _failure(start, f"Timeout. The request did not complete within {settings.request_timeout_seconds:g} seconds.")
-    except httpx.ConnectError as exc:
-        return _failure(start, f"Connection error. The host could not be reached. {exc}")
+        return _failure(start, f"Timeout. The request did not complete within {effective_timeout:g} seconds.")
+    except httpx.ConnectError:
+        return _failure(start, "Connection error. The host could not be reached.")
     except httpx.UnsupportedProtocol:
         return _failure(start, "Invalid URL format. Only http and https requests are supported.")
     except httpx.InvalidURL:
         return _failure(start, "Invalid URL format. The URL could not be parsed by the HTTP client.")
-    except httpx.RemoteProtocolError as exc:
-        return _failure(start, f"Protocol error. The server returned an invalid HTTP response. {exc}")
-    except httpx.TransportError as exc:
-        return _failure(start, f"Network error. The request could not be completed. {exc}")
-    except httpx.HTTPError as exc:
-        return _failure(start, f"HTTP client error. {exc}")
-    except Exception as exc:
-        return _failure(start, f"Unexpected request error. {exc}")
+    except httpx.RemoteProtocolError:
+        return _failure(start, "Protocol error. The server returned an invalid HTTP response.")
+    except httpx.TransportError:
+        return _failure(start, "Network error. The request could not be completed.")
+    except httpx.HTTPError:
+        return _failure(start, "HTTP client error.")
+    except Exception:
+        return _failure(start, "Unexpected request error.")
 
 
 def _failure(start: float, message: str) -> ApiClientResult:

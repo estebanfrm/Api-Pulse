@@ -1,21 +1,21 @@
 <template>
-  <section class="panel response-panel">
+  <section class="panel response-panel" :aria-busy="loading">
     <div class="panel-header">
       <div>
         <p class="eyebrow">Response</p>
         <h2>Result</h2>
       </div>
-      <span v-if="check" class="status-badge" :class="{ success: check.success, failed: !check.success }">
-        {{ check.success ? "Success" : "Error" }}
+      <span v-if="check" class="status-badge" :class="{ received: check.success, failed: !check.success }">
+        {{ check.success ? "Response received" : "No response" }}
       </span>
     </div>
 
-    <div v-if="loading" class="empty-state loading-state">
+    <div v-if="loading" class="empty-state loading-state" role="status">
       <span class="spinner" aria-hidden="true"></span>
       <span>Sending request...</span>
     </div>
     <div v-else-if="error" class="empty-state">
-      <div class="error-card">
+      <div class="error-card" role="alert">
         <span class="error-label">Request error</span>
         <strong>{{ error }}</strong>
       </div>
@@ -28,11 +28,15 @@
         </div>
         <div class="metric-card">
           <span>Time</span>
-          <strong>{{ check.response_time_ms ?? "N/A" }} ms</strong>
+          <strong>{{ formattedTime }}</strong>
         </div>
       </div>
 
-      <div v-if="check.error_message" class="error-card compact">
+      <p v-if="httpErrorResponse" class="response-note">
+        The target returned an HTTP error status. Its response was received and recorded.
+      </p>
+
+      <div v-if="check.error_message" class="error-card compact" role="alert">
         <span class="error-label">{{ errorType }}</span>
         <strong>{{ check.error_message }}</strong>
       </div>
@@ -78,6 +82,16 @@ const statusClass = computed(() => {
     return "status-4xx";
   }
   return "status-5xx";
+});
+
+const formattedTime = computed(() => {
+  const responseTime = check.value?.response_time_ms;
+  return Number.isFinite(responseTime) ? `${responseTime} ms` : "N/A";
+});
+
+const httpErrorResponse = computed(() => {
+  const status = check.value?.status_code;
+  return check.value?.success === true && Number.isFinite(status) && status >= 400;
 });
 
 const errorType = computed(() => {

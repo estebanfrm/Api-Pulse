@@ -1,0 +1,44 @@
+# Render services only. Neon is created separately; DATABASE_URL is entered as a secret.
+services:
+  - type: web
+    name: api-pulse-api
+    runtime: python
+    plan: free
+    region: virginia
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT --workers 1 --no-access-log --no-proxy-headers
+    healthCheckPath: /health
+    autoDeployTrigger: "off"
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.14
+      - key: APP_ENV
+        value: production
+      - key: PUBLIC_DEMO
+        value: "true"
+      - key: DATABASE_URL
+        sync: false
+      - key: FRONTEND_ORIGIN
+        fromService:
+          type: web
+          name: api-pulse-web
+          envVarKey: RENDER_EXTERNAL_URL
+
+  - type: web
+    name: api-pulse-web
+    runtime: static
+    rootDir: frontend
+    buildCommand: npm ci && npm run build
+    staticPublishPath: ./dist
+    autoDeployTrigger: "off"
+    envVars:
+      - key: NODE_VERSION
+        value: 22.14.0
+      - key: VITE_PUBLIC_DEMO
+        value: "true"
+      - key: VITE_API_BASE_URL
+        fromService:
+          type: web
+          name: api-pulse-api
+          envVarKey: RENDER_EXTERNAL_URL

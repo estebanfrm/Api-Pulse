@@ -12,9 +12,17 @@
     </div>
 
     <label class="field">
-      <span>URL</span>
-      <input v-model.trim="url" type="url" placeholder="https://api.github.com" />
+      <span>{{ publicDemo ? "Scenario" : "URL" }}</span>
+      <select v-if="publicDemo" v-model="url">
+        <option v-for="item in DEMO_SCENARIOS" :key="item.url" :value="item.url">{{ item.label }}</option>
+      </select>
+      <input v-else v-model.trim="url" type="url" placeholder="https://api.github.com" />
     </label>
+
+    <p v-if="publicDemo" class="demo-notice">
+      Public demo: only built-in scenarios run. Shared history keeps metadata for up to 24 hours / 500 checks.
+      Do not enter secrets or personal data.
+    </p>
 
     <label class="field">
       <span>Method</span>
@@ -39,6 +47,7 @@
 
 <script setup>
 import { ref } from "vue";
+import { DEMO_SCENARIOS } from "../services/demoScenarios.js";
 
 defineProps({
   loading: {
@@ -50,7 +59,8 @@ defineProps({
 const emit = defineEmits(["submit"]);
 const methods = ["GET", "POST", "PUT", "DELETE"];
 
-const url = ref("https://api.github.com");
+const publicDemo = import.meta.env.VITE_PUBLIC_DEMO !== "false";
+const url = ref(publicDemo ? DEMO_SCENARIOS[0].url : "https://api.github.com");
 const method = ref("GET");
 const headersText = ref("{}");
 const bodyText = ref("{}");
@@ -58,7 +68,7 @@ const localError = ref("");
 
 function submitRequest() {
   localError.value = "";
-  const parsedUrl = parseUrl(url.value);
+  const parsedUrl = publicDemo ? DEMO_SCENARIOS.find((item) => item.url === url.value)?.url : parseUrl(url.value);
   if (!parsedUrl) {
     localError.value = "Invalid URL format. Enter a complete http or https URL.";
     return;

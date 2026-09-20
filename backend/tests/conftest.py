@@ -7,11 +7,13 @@ from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
 
 from app.database import Base, get_db
+from app.config import settings
 from app.main import app
 
 
 @pytest.fixture()
-def client() -> Generator[TestClient, None, None]:
+def client(monkeypatch: pytest.MonkeyPatch) -> Generator[TestClient, None, None]:
+    monkeypatch.setattr(settings, "public_demo", False)
     engine = create_engine(
         "sqlite+pysqlite://",
         connect_args={"check_same_thread": False},

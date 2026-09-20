@@ -72,3 +72,43 @@ def test_rejects_invalid_method(client: TestClient) -> None:
     response = client.post("/api/checks", json=_payload("https://api.example.com", method="PATCH"))
 
     assert response.status_code == 422
+
+
+def test_history_is_ordered_by_most_recent_check(client: TestClient) -> None:
+    urls = [f"http://localhost/check-{index}" for index in range(3)]
+    for url in urls:
+        response = client.post("/api/checks", json=_payload(url))
+        assert response.status_code == 200
+
+    history = client.get("/api/checks?limit=3")
+
+    assert history.status_code == 200
+    entries = history.json()
+    created_at_values = [entry["created_at"] for entry in entries]
+    assert {entry["url"] for entry in entries} == set(urls)
+    assert created_at_values == sorted(created_at_values, reverse=True)
+
+
+def test_history_applies_default_and_maximum_limits(client: TestClient) -> None:
+    for index in range(101):
+        response = client.post(
+            "/api/checks",
+            json=_payload(f"http://localhost/check-{index}"),
+        )
+        assert response.status_code == 200
+
+    default_history = client.get("/api/checks")
+    maximum_history = client.get("/api/checks?limit=100")
+
+    assert default_history.status_code == 200
+    assert maximum_history.status_code == 200
+    assert len(default_history.json()) == 50
+    assert len(maximum_history.json()) == 100
+    assert default_history.json() == maximum_history.json()[:50]
+
+
+@pytest.mark.parametrize("limit", [0, 101])
+def test_history_rejects_limits_outside_allowed_range(client: TestClient, limit: int) -> None:
+    response = client.get(f"/api/checks?limit={limit}")
+
+    assert response.status_code == 422

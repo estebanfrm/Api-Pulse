@@ -1,20 +1,40 @@
 <template>
-  <section class="panel history-panel">
+  <section class="panel history-panel" :aria-busy="loading">
     <div class="panel-header">
       <div>
         <p class="eyebrow">History</p>
         <h2>Recent checks</h2>
       </div>
-      <span class="count">{{ history.length }}</span>
+      <div class="history-meta">
+        <span v-if="loading" class="inline-status" role="status">Refreshing...</span>
+        <span class="count">{{ history.length }}</span>
+      </div>
     </div>
 
-    <div class="table-wrap">
+    <div v-if="error" class="error-card compact history-error" role="alert">
+      <div>
+        <span class="error-label">History unavailable</span>
+        <strong>{{ error }}</strong>
+      </div>
+      <button class="secondary-button" type="button" :disabled="loading" @click="emit('retry')">
+        Retry history
+      </button>
+    </div>
+
+    <div v-if="loading && !history.length" class="empty-state compact loading-state" role="status">
+      <span class="spinner" aria-hidden="true"></span>
+      <span>Loading history...</span>
+    </div>
+
+    <div v-else-if="!history.length && !error" class="empty-state compact">No checks yet.</div>
+
+    <div v-if="history.length" class="table-wrap">
       <table>
         <thead>
           <tr>
-            <th>State</th>
+            <th>Outcome</th>
             <th>Method</th>
-            <th>URL</th>
+            <th>{{ publicDemo ? "Scenario" : "URL" }}</th>
             <th>Status</th>
             <th>Time</th>
             <th>Date</th>
@@ -23,13 +43,15 @@
         <tbody>
           <tr v-for="item in history" :key="item.id">
             <td>
-              <span class="tiny-state" :class="{ success: item.success, failed: !item.success }"></span>
+              <span class="state-badge" :class="{ received: item.success, failed: !item.success }">
+                {{ item.success ? "Received" : "No response" }}
+              </span>
             </td>
             <td><span class="method-tag">{{ item.method }}</span></td>
             <td class="url-cell" :title="item.error_message || item.url">{{ item.url }}</td>
             <td><span class="http-status" :class="statusClass(item.status_code)">{{ item.status_code ?? "N/A" }}</span></td>
-            <td>{{ item.response_time_ms ?? "N/A" }} ms</td>
-            <td>{{ formatDate(item.created_at) }}</td>
+            <td>{{ formatTime(item.response_time_ms) }}</td>
+            <td>{{ formatHistoryDate(item.created_at) }}</td>
           </tr>
         </tbody>
       </table>
@@ -38,20 +60,31 @@
 </template>
 
 <script setup>
+import { formatHistoryDate } from "./historyDate.js";
+
 defineProps({
+  publicDemo: {
+    type: Boolean,
+    default: false
+  },
   history: {
     type: Array,
     default: () => []
+  },
+  loading: {
+    type: Boolean,
+    default: false
+  },
+  error: {
+    type: String,
+    default: ""
   }
 });
 
-function formatDate(value) {
-  return new Intl.DateTimeFormat(undefined, {
-    month: "short",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit"
-  }).format(new Date(value));
+const emit = defineEmits(["retry"]);
+
+function formatTime(value) {
+  return Number.isFinite(value) ? `${value} ms` : "N/A";
 }
 
 function statusClass(status) {
