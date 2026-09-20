@@ -7,9 +7,9 @@
 - Worktree utilizado para T01–T06: `C:\Users\giral\.codex\worktrees\7c72\api-pulse`.
 - El checkout fuente histórico está en `C:\Users\giral\OneDrive\Documentos\Esteban\api-pulse`; la ruta antigua `nwep` no existe.
 - Repositorio: [estebanfrm/Api-Pulse](https://github.com/estebanfrm/Api-Pulse).
-- Base: commit `7399e86`; T00–T06 se guardaron en `1f373b4`, rama publicada `codex/api-pulse-t07-publication` y PR #4 en borrador.
+- Base inicial: commit `7399e86`; T00–T06 se guardaron en `1f373b4`. El [PR #4](https://github.com/estebanfrm/Api-Pulse/pull/4) integró T00–T08 en `main` mediante el merge `0cb28cf`.
 - Git confirmó `origin/main` en `7399e86` el 2026-09-19. La primera consulta dentro del sandbox falló por red; fuera del sandbox se confirmó el hash y se publicó la rama sin modificar `main`.
-- T01 modificó pruebas, documentación y las versiones frontend necesarias para cerrar la auditoría. T02 modificó la coordinación y presentación de estados frontend, añadió sus pruebas y extendió la CI. T03 añadió un stack de integración aislado y su destino controlado. T04 preparó la propuesta aprobada. T05 implementó el modo público acotado y su historial. T06 preparó Render/Neon, configuración cerrada de producción, readiness y smoke CI de PostgreSQL aún no ejecutado. Se preservaron los contratos locales al fijar `PUBLIC_DEMO=false` en los Compose de desarrollo/integración.
+- T01 modificó pruebas, documentación y las versiones frontend necesarias para cerrar la auditoría. T02 modificó la coordinación y presentación de estados frontend, añadió sus pruebas y extendió la CI. T03 añadió un stack de integración aislado y su destino controlado. T04 preparó la propuesta aprobada. T05 implementó el modo público acotado y su historial. T06 preparó Render/Neon, configuración cerrada de producción, readiness y smoke CI de PostgreSQL, ejecutado después en GitHub Actions. Se preservaron los contratos locales al fijar `PUBLIC_DEMO=false` en los Compose de desarrollo/integración.
 
 ## Implementado por inspección
 
@@ -21,16 +21,16 @@
 | Gráfica | `ResponseTimeChart.vue` | Hasta 12 respuestas con tiempo válido |
 | Solicitudes salientes | `services/api_client.py`, `services/demo.py` | httpx sin redirecciones; escenario público sintético sin socket ni DNS hacia el destino |
 | Destinos permitidos | `services/security.py`, `services/demo.py` | Modo local con validación IP/DNS; modo público con catálogo fijo |
-| Calidad y validación | Workflow, suites y `compose.integration.yml` | T06: 72 casos backend aprobados, 1 smoke PostgreSQL omitido por falta de Docker, 7 frontend, lint/build; PostgreSQL real comprobado en T03 para el código anterior |
-| Despliegue público | `render.yaml`, [guía](DESPLIEGUE_RENDER_NEON.md) y [evidencia T07](VALIDACION_T07.md) | Sitio y API HTTPS en Render Free con Neon Free; T07 verificado, T08 de presentación pendiente |
+| Calidad y validación | Workflow, suites y `compose.integration.yml` | T08 local: 72 backend aprobados, 1 smoke omitido por falta de Docker, 8 frontend, lint/build; PostgreSQL smoke y los cuatro jobs aprobaron en CI del merge |
+| Despliegue público | `render.yaml`, [guía](DESPLIEGUE_RENDER_NEON.md) y [evidencia T07](VALIDACION_T07.md) | Sitio/API HTTPS en Render Free con Neon Free; presentación T08 y licencia MIT visibles desde `main` |
 
 ## Hallazgos prioritarios
 
-1. **Demo pública y presentación final verificadas en la rama.** D08–D12 están aprobadas. Sitio `a32bc4f` y API `98cb6f9` están Live en Render con Neon Free; ambas CI aprobaron. La visita tras más de 16 minutos sin tráfico conservó historial y permitió escribir otra fila. T08 añadió README, capturas y `LICENSE` MIT con el nombre público «API PULSE» indicado por el usuario; la [CI de `ef3fb29`](https://github.com/estebanfrm/Api-Pulse/actions/runs/35540890598) aprobó. Falta integrar el PR en `main` para que el README final sea la portada predeterminada. Ver [validación T07](VALIDACION_T07.md).
+1. **Portafolio público cerrado con límites explícitos.** D08–D12 están aprobadas. Sitio `a32bc4f` y API `98cb6f9` siguen Live en Render con Neon Free. La visita tras más de 16 minutos sin tráfico conservó historial y permitió escribir otra fila. README, capturas y `LICENSE` MIT con «API PULSE» son visibles desde `main`, y la [CI de `main`](https://github.com/estebanfrm/Api-Pulse/actions/runs/35541246577) aprobó. Ver [validación T07](VALIDACION_T07.md).
 2. **Cuotas por proceso/proxy.** Los límites por IP y global son en memoria y no coordinan réplicas. El Blueprint fija un worker y una instancia Free. Un cliente recibió 429 tras el límite en Render, pero no se ha demostrado aislamiento entre visitantes distintos que puedan compartir la IP de par. No se confía en `X-Forwarded-For` enviado por el visitante.
 3. **Modo local distinto del público.** En local continúa la validación DNS antes de httpx sin fijar la IP efectiva; no se ha probado una explotación. No exponer ese modo. En público el catálogo sintético usa `MockTransport`, sin DNS ni socket para los destinos de comprobación.
 4. **Esquema v1 sin migraciones.** `create_all` crea tablas vacías al arrancar, no cambia columnas existentes. T06 no altera el modelo y documenta que un cambio futuro requiere migración explícita, copia previa y rollback. La base Neon no está en la red privada de Render: se protege con credenciales/TLS, no con aislamiento de red entre proveedores.
-5. **CI ampliada y aprobada.** La primera CI del PR #4 falló en `npm audit` por respuestas 503/400 del registro; el segundo intento de `98cb6f9` y la nueva CI de `a32bc4f` aprobaron los cuatro jobs. La auditoría local devolvió cero hallazgos. La CI no cubre navegador/Neon; ambos se probaron manualmente en T07. Ver [evidencia](VALIDACION_T07.md).
+5. **CI ampliada y aprobada.** La primera CI del PR #4 falló en `npm audit` por respuestas 503/400 del registro; se resolvió en reintento sin cambiar dependencias. La CI final de T08 y la del merge `0cb28cf` aprobaron los cuatro jobs. La auditoría local devolvió cero hallazgos. La CI no cubre navegador/Neon; ambos se probaron manualmente en T07. Ver [evidencia](VALIDACION_T07.md).
 6. **Avisos de deprecación en pruebas.** pytest informa tres avisos en Starlette/FastAPI por `BlockingPortal` y `on_event`. No son fallos actuales, pero deben considerarse al actualizar ese stack.
 
 ## T01 — Pruebas y calidad
@@ -237,7 +237,7 @@ Se añadió `/ready` con `SELECT 1` y 503 genérico si la base falla. `/health` 
 
 ## T07 — Publicación y verificación
 
-**Estado: completado el 2026-09-20 con limitaciones registradas; PR #4 permanece en borrador.** Git confirmó `main` en `7399e86`, la misma base local. Se creó y publicó `codex/api-pulse-t07-publication` con la preparación T00–T06 en `1f373b4`, y se abrió el [PR #4 en borrador](https://github.com/estebanfrm/Api-Pulse/pull/4). El escaneo de patrones de claves en archivos versionables no encontró coincidencias; `.env` está ignorado. La revisión staged detectó y corrigió un espacio final en la documentación antes del commit.
+**Estado: completado el 2026-09-20 con limitaciones registradas; el PR #4 estaba en borrador al cierre de T07 y se fusionó después en T08.** Git confirmó entonces `main` en `7399e86`, la misma base local. Se creó y publicó `codex/api-pulse-t07-publication` con la preparación T00–T06 en `1f373b4`, y se abrió el [PR #4](https://github.com/estebanfrm/Api-Pulse/pull/4). El escaneo de patrones de claves en archivos versionables no encontró coincidencias; `.env` está ignorado. La revisión staged detectó y corrigió un espacio final en la documentación antes del commit.
 
 | Comprobación T07 | Resultado |
 | --- | --- |
@@ -256,11 +256,11 @@ La [primera CI del PR #4](https://github.com/estebanfrm/Api-Pulse/actions/runs/3
 
 ## T08 — Presentación final del portafolio
 
-**Estado: contenido y comprobaciones completados en la rama el 2026-09-20; integración a `main` como último paso operativo.** El usuario indicó «API PULSE» como nombre público del titular. Se creó `LICENSE` MIT con `Copyright (c) 2026 API PULSE`, contrastado con [SPDX](https://spdx.org/licenses/MIT). El README nuevo enlaza demo/código/licencia, incluye resumen inglés, recorrido, arquitectura, uso local, controles, límites y evidencia. Se conservaron las fuentes históricas sin presentarlas como actuales.
+**Estado: completado en `main` el 2026-09-20.** El usuario indicó «API PULSE» como nombre público del titular. Se creó `LICENSE` MIT con `Copyright (c) 2026 API PULSE`, contrastado con [SPDX](https://spdx.org/licenses/MIT). El README enlaza demo/código/licencia, incluye resumen inglés, recorrido, arquitectura, uso local, controles, límites y evidencia. Se conservaron las fuentes históricas sin presentarlas como actuales.
 
 **Capturas:** `docs/screenshots/dashboard-public.png` (1536×1700, 318 979 bytes) y `dashboard-compact.png` (800×1800, 141 489 bytes) provienen del sitio público, con historial sintético y sin credenciales. Se inspeccionaron visualmente. Una primera captura headless de 390 px salió recortada por el tamaño interno del navegador y se descartó; una observación separada de la página real con viewport 390×844 mostró el contenido ajustado y sin desbordamiento horizontal. No se cambió código de frontend/backend ni se requirió nuevo deploy de Render.
 
-**Comprobaciones T08:** `git diff --cached --check` aprobó; un escaneo de Markdown encontró 11 enlaces relativos y 0 ausentes. El README renderizado y la imagen principal abrieron desde GitHub en la rama. Se repitieron localmente pytest (72 passed, 1 skipped, 3 avisos), Ruff, 8 tests frontend, ESLint, build público Vite (18 módulos) y `docker compose config --quiet` (aprobado con aviso de acceso a configuración global Docker). Docker Engine no estuvo disponible para repetir PostgreSQL localmente. La [CI de `ef3fb29`](https://github.com/estebanfrm/Api-Pulse/actions/runs/35540890598) aprobó Backend, Frontend, Docker Compose y PostgreSQL smoke. No se cambió código de aplicación ni se requirió nuevo deploy de Render. La integración en `main` y verificación de su página predeterminada siguen como paso operativo.
+**Comprobaciones T08:** `git diff --cached --check` aprobó; un escaneo de Markdown encontró 11 enlaces relativos y 0 ausentes. El README renderizado y la imagen principal abrieron desde GitHub en la rama y, después del merge `0cb28cf`, desde `main`; GitHub reconoció MIT. Se repitieron localmente pytest (72 passed, 1 skipped, 3 avisos), Ruff, 8 tests frontend, ESLint, build público Vite (18 módulos) y `docker compose config --quiet` (aprobado con aviso de acceso a configuración global Docker). Docker Engine no estuvo disponible para repetir PostgreSQL localmente. La [CI del commit T08](https://github.com/estebanfrm/Api-Pulse/actions/runs/35541101176) y la [CI del merge](https://github.com/estebanfrm/Api-Pulse/actions/runs/35541246577) aprobaron Backend, Frontend, Docker Compose y PostgreSQL smoke. El campo Homepage del repositorio enlaza la demo. No se cambió código de aplicación ni se requirió nuevo deploy de Render.
 
 ## Historial comprobado con Git
 
@@ -271,13 +271,15 @@ La [primera CI del PR #4](https://github.com/estebanfrm/Api-Pulse/actions/runs/3
 | `a216136`, merge `29bdc6b` | 2026-05-27 | Herramientas y pruebas, PR #2 |
 | `475f513`, merge `7399e86` | 2026-05-28 | Workflow de CI, PR #3 |
 | `1f373b4` | 2026-09-19 | Preparación T00–T06 publicada en rama y PR #4 en borrador; no desplegada |
+| `ef3fb29`, `a4d6be2` | 2026-09-20 | README/capturas/licencia T08 y cierre documental, CI aprobada |
+| Merge `0cb28cf` | 2026-09-20 | PR #4 integrado a `main`; CI de cuatro jobs aprobada |
 
 Estos nombres de fases provienen de commits. La numeración de validaciones del README histórico describe otra secuencia; no debe usarse como prueba de finalización.
 
 ## Siguiente punto de entrada
 
-Integrar el [PR #4](https://github.com/estebanfrm/Api-Pulse/pull/4) en `main` tras revisar su estado de merge y la CI final; verificar que la portada pública muestre README, captura y licencia. Después, vigilar cuotas y observar la poda de 24 horas como seguimientos no bloqueantes. No seleccionar servicios pagados. La aceptación completa está en [el plan](PLAN_DE_CIERRE.md).
+No queda un bloque obligatorio T00–T08. Como seguimiento opcional, vigilar cuotas gratuitas, observar la poda tras 24 horas reales, medir aislamiento de cuotas entre visitantes distintos y preparar migraciones explícitas antes de cambios de esquema. No seleccionar servicios pagados ni ampliar la demo a destinos arbitrarios sin una nueva decisión. La aceptación completa está en [el plan](PLAN_DE_CIERRE.md).
 
 ## Comprobación de la entrega documental
 
-Se preservó el relevo documental y el README histórico. T01 cambió pruebas y dependencias frontend; T02 cambió la coordinación/presentación de estados y CI; T03 añadió integración; T04 documentó decisiones; T05 añadió modo público acotado; T06 preparó Blueprint, controles de producción, readiness, build cerrado, smoke CI y guía. T07 publicó el código en PR #4, desplegó y verificó la demo; T08 preparó y comprobó presentación/licencia, pendiente solo de integrar a `main`.
+Se preservó el relevo documental y el README histórico. T01 cambió pruebas y dependencias frontend; T02 cambió la coordinación/presentación de estados y CI; T03 añadió integración; T04 documentó decisiones; T05 añadió modo público acotado; T06 preparó Blueprint, controles de producción, readiness, build cerrado, smoke CI y guía. T07 publicó y verificó la demo; T08 completó presentación/licencia y el PR #4 integró todo a `main`.
