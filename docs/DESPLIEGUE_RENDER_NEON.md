@@ -1,6 +1,6 @@
 # Despliegue de la demo pública: Render + Neon
 
-**Estado:** procedimiento preparado en T06 y publicado en `1f373b4`/PR #4 en borrador durante T07. No se han creado recursos de alojamiento ni se ha publicado una URL de demo. Falta acceso autenticado a Render y Neon para ejecutar y verificar el resto de T07. La decisión D09 autoriza solo planes gratuitos, Virginia/N. Virginia y subdominios incluidos, sin compra ni subida de plan.
+**Estado:** procedimiento preparado en T06 y ejecutado parcialmente en T07 el 2026-09-20. [Sitio](https://api-pulse-web.onrender.com) y [API](https://api-pulse-api.onrender.com) están publicados con Neon Free; la [validación T07](VALIDACION_T07.md) registra resultados, limitaciones y lo pendiente. El procedimiento de abajo queda para reproducción/recuperación, no como indicación de crear recursos duplicados. La decisión D09 autoriza solo planes gratuitos, Virginia/N. Virginia y subdominios incluidos, sin compra ni subida de plan.
 
 ## Topología y límites
 
@@ -13,8 +13,8 @@ Render [documenta Blueprints, `rootDir`, variables y `sync: false`](https://rend
 
 ## Preparación antes de crear recursos
 
-1. La revisión T00–T06 ya está publicada en `codex/api-pulse-t07-publication`, commit `1f373b4`, [PR #4 en borrador](https://github.com/estebanfrm/Api-Pulse/pull/4). La primera CI aprobó Backend, PostgreSQL smoke y Compose; Frontend falló solo en auditoría porque npm devolvió 503/400. Repetir la auditoría cuando el registro responda y comprobar el resultado completo antes de fusionar o desplegar. Confirmar que `main` no avanzó desde `7399e86`. No copiar `.env` ni secretos.
-2. Revisar en Render y Neon que los planes gratuitos y las cuotas sigan vigentes. En Render, elegir Free para la API y Static Site gratuito; no crear Render Postgres. Confirmar que una cuenta con método de pago puede incurrir en cargos por uso excedente y establecer alertas/límites de gasto disponibles antes de publicar. Render [explica las horas y cuotas Free](https://render.com/docs/free) y [el posible cobro por ancho de banda](https://render.com/docs/outbound-bandwidth).
+1. La revisión T00–T06 está publicada en `codex/api-pulse-t07-publication`, commit `1f373b4`, [PR #4 en borrador](https://github.com/estebanfrm/Api-Pulse/pull/4). La primera CI falló solo en auditoría cuando npm devolvió 503/400; el reintento del commit `98cb6f9` aprobó todos los jobs tras una auditoría local de cero hallazgos. Confirmar el commit y la CI de cualquier cambio posterior antes de publicarlo o fusionarlo. No copiar `.env` ni secretos.
+2. Revisar en Render y Neon que los planes gratuitos y las cuotas sigan vigentes. En la ejecución T07 se creó un workspace Render Hobby exclusivo sin tarjeta, separado de otros servicios; allí solo se seleccionaron API Free y Static Site. No crear Render Postgres. Sin método de pago, Render puede suspender la demo al agotar cuotas; con tarjeta puede cobrar excedentes. Render [explica las horas y cuotas Free](https://render.com/docs/free) y [el posible cobro por ancho de banda](https://render.com/docs/outbound-bandwidth).
 3. Validar `render.yaml` con `render blueprints validate` si se dispone de la CLI autenticada. La validación YAML local comprueba sintaxis, no reemplaza la validación semántica ni la sincronización real de Render.
 
 ## Crear Neon y configurar el secreto
