@@ -321,6 +321,7 @@ Injected: 1` | `schemas.py` rechaza caracteres de control y no ASCII con 422 y m
 | 5 | Un fallo de historial obsoleto volvía a levantar el cartel de error tras un refresco correcto | Mismo arnés | Ídem |
 | 6 | `historyLoading` se apagaba mientras otro refresco seguía en vuelo: el indicador desaparecía y «Retry history» se rehabilitaba antes de tiempo | Mismo arnés | El `finally` solo limpia si el token sigue siendo el vigente |
 | 7 | El workflow de CI no declaraba `permissions`, así que el token heredaba los permisos por defecto pese a que ningún job escribe en el repositorio | Lectura de `.github/workflows/quality.yml` | `permissions: contents: read` a nivel de workflow |
+| 8 | El pool de base de datos sirve tres conexiones (`pool_size=2`, `max_overflow=1`) pero `demo_concurrent_global` admitía 10 solicitudes a la vez. Una solicitud retiene una conexión mientras confirma y poda, así que el excedente esperaba `pool_timeout=10` y salía como 500 en lugar de un 429 honesto | Se comprobó que la cuarta conexión lanza `TimeoutError` tras 10 s exactos | `DB_POOL_CAPACITY` queda expuesta en `database.py` y `demo_concurrent_global` baja a 3; una prueba fija el invariante para que no vuelva a desalinearse |
 
 ### Vulnerabilidades de dependencias
 
@@ -351,7 +352,7 @@ Injected: 1` | `schemas.py` rechaza caracteres de control y no ASCII con 422 y m
 
 ### Riesgos abiertos, no modificados
 
-- **Pool de base de datos frente a concurrencia.** `create_engine` fija `pool_size=2, max_overflow=1`: tres conexiones. Se comprobó que la cuarta espera `pool_timeout=10` y lanza `TimeoutError`, que sale como 500. `demo_concurrent_global` es 10. Hoy no es alcanzable porque detrás del proxy el tope por IP de 2 gobierna todo el tráfico, pero cualquier corrección del reparto por IP lo destaparía. Alinear ambos valores antes de tocar las cuotas.
+- **Capacidad de concurrencia limitada por el plan gratuito.** Tras alinear la cuota con el pool (defecto 8), el tope global es 3 solicitudes simultáneas. Subirlo exigiría más conexiones de Neon Free, que el usuario decidió no consumir. Con las tres ocupadas, `/ready` puede esperar hasta `pool_timeout`.
 - **Modo local sin tope de respuesta.** `execute_api_request` lee el cuerpo completo del destino sin límite de bytes fuera del modo demo. Coherente con que ese modo no deba publicarse.
 - `/ready` abre una conexion a Neon sin autenticación en cada llamada.
 - `/docs` y `/openapi.json` siguen públicos.
@@ -359,7 +360,7 @@ Injected: 1` | `schemas.py` rechaza caracteres de control y no ASCII con 422 y m
 
 ### Comprobaciones ejecutadas
 
-- `pytest -p no:cacheprovider`: **89 aprobados, 1 omitido**, tanto con el conjunto fijado actual como con el entorno de prueba actualizado.
+- `pytest -p no:cacheprovider`: **90 aprobados, 1 omitido**, tanto con el conjunto fijado actual como con el entorno de prueba actualizado.
 - `ruff check` y `compileall`: aprobados en ambos entornos.
 - `npm test`: **12 aprobados**; `npm run lint` y `npm run build`: aprobados.
 - `npm audit --omit=optional`: cero vulnerabilidades. Consulta a OSV para los ocho paquetes Python instalados.

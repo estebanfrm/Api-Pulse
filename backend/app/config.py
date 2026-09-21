@@ -17,7 +17,10 @@ class Settings(BaseSettings):
     demo_requests_per_minute_ip: int = 10
     demo_requests_per_minute_global: int = 60
     demo_concurrent_ip: int = 2
-    demo_concurrent_global: int = 10
+    # Kept at or below DB_POOL_CAPACITY: a request holds a pooled connection while it
+    # commits and prunes, so admitting more than the pool can serve turns the surplus
+    # into a pool_timeout wait and then a 500 instead of an honest 429.
+    demo_concurrent_global: int = 3
     demo_max_request_bytes: int = 16 * 1024
     demo_max_response_bytes: int = 64 * 1024
     demo_timeout_seconds: float = 8.0
