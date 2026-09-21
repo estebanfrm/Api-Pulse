@@ -44,15 +44,23 @@ def validate_public_url(url: str) -> str:
     if not candidate:
         raise UrlFormatError("Invalid URL format. Enter a full http or https URL.")
 
-    parsed = urlsplit(candidate)
+    try:
+        # urlsplit raises ValueError on a malformed authority such as "http://[".
+        parsed = urlsplit(candidate)
+    except ValueError as exc:
+        raise UrlFormatError("Invalid URL format. The URL could not be parsed.") from exc
     if parsed.scheme.lower() not in ALLOWED_SCHEMES:
         raise UrlFormatError("Invalid URL format. Use a URL that starts with http:// or https://.")
     if not parsed.netloc:
         raise UrlFormatError("Invalid URL format. Include a hostname, for example https://api.example.com.")
-    if not parsed.hostname:
+    try:
+        raw_hostname = parsed.hostname
+    except ValueError as exc:
+        raise UrlFormatError("Invalid URL format. Include a valid hostname.") from exc
+    if not raw_hostname:
         raise UrlFormatError("Invalid URL format. Include a valid hostname.")
 
-    hostname = parsed.hostname.strip().lower()
+    hostname = raw_hostname.strip().lower()
     if hostname in BLOCKED_HOSTNAMES:
         raise BlockedTargetError("Blocked target. Localhost URLs are not allowed.")
     if hostname.endswith(".localhost"):
@@ -74,8 +82,12 @@ def _validate_hostname_is_public(hostname: str) -> None:
 
 def _validate_resolved_addresses(hostname: str) -> None:
     try:
+        # getaddrinfo raises UnicodeError, not gaierror, when a label is empty or longer
+        # than 63 characters, so "https://a..b" or an over-long label would otherwise
+        # escape as an unhandled 500 instead of a recorded failed check. gaierror is an
+        # OSError subclass, so both families are covered here.
         address_info = socket.getaddrinfo(hostname, None, type=socket.SOCK_STREAM)
-    except socket.gaierror as exc:
+    except (OSError, UnicodeError) as exc:
         raise UrlFormatError("Invalid URL target. Hostname could not be resolved.") from exc
 
     if not address_info:

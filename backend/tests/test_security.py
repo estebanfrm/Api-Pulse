@@ -90,3 +90,26 @@ def test_validate_public_url_blocks_hostname_with_mixed_public_and_private_dns(
         validate_public_url("https://mixed.example.com")
 
     assert "Blocked target" in str(exc_info.value)
+
+
+@pytest.mark.parametrize(
+    "url",
+    [
+        "https://a..b/resource",
+        "https://..invalid/resource",
+        "https://" + "a" * 64 + ".invalid/resource",
+        "https://" + "a" * 300 + "/resource",
+    ],
+)
+def test_validate_public_url_rejects_malformed_dns_labels(url: str) -> None:
+    # getaddrinfo raises UnicodeError for empty or over-long labels; it must surface
+    # as a recorded URL error, never as an unhandled 500.
+    with pytest.raises(UrlFormatError):
+        validate_public_url(url)
+
+
+@pytest.mark.parametrize("url", ["http://[", "http://[::1", "https://[oops]/x"])
+def test_validate_public_url_rejects_unparseable_authority(url: str) -> None:
+    # urlsplit raises ValueError on a malformed authority; it must not escape.
+    with pytest.raises(UrlFormatError):
+        validate_public_url(url)

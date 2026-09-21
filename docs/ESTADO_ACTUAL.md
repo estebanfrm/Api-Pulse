@@ -32,7 +32,8 @@
 4. **Esquema v1 sin migraciones.** `create_all` crea tablas vacías al arrancar, no cambia columnas existentes. T06 no altera el modelo y documenta que un cambio futuro requiere migración explícita, copia previa y rollback. La base Neon no está en la red privada de Render: se protege con credenciales/TLS, no con aislamiento de red entre proveedores.
 5. **CI ampliada y aprobada.** La primera CI del PR #4 falló en `npm audit` por respuestas 503/400 del registro; se resolvió en reintento sin cambiar dependencias. La CI final de T08 y la del merge `0cb28cf` aprobaron los cuatro jobs. La auditoría local devolvió cero hallazgos. La CI no cubre navegador/Neon; ambos se probaron manualmente en T07. Ver [evidencia](VALIDACION_T07.md).
 6. **Avisos de deprecación en pruebas.** T09 migró `on_event` a `lifespan`; pytest ya solo informa el aviso de `BlockingPortal` de Starlette. No es un fallo actual, pero debe considerarse al actualizar ese stack.
-7. **Correcciones de T09 sin desplegar.** Las correcciones de la auditoría T09 están en el worktree y no se han publicado. El sitio y la API en Render siguen sirviendo `0cb28cf`/`a32bc4f`; `autoDeployTrigger: "off"` exige un despliegue manual para que lleguen a la demo pública.
+7. **Avisos de dependencias no explotables pero abiertos.** `fastapi==0.115.6` ancla `starlette<0.42.0`, que arrastra siete avisos GHSA (tres HIGH). Se comprobó uno por uno que ninguno es alcanzable en esta aplicación, y que actualizar a `fastapi==0.141.1` los cierra sin romper pruebas. Decisión pendiente del usuario. Ver T10.
+8. **Correcciones de T09 y T10 sin desplegar.** Las correcciones de la auditoría T09 están en el worktree y no se han publicado. El sitio y la API en Render siguen sirviendo `0cb28cf`/`a32bc4f`; `autoDeployTrigger: "off"` exige un despliegue manual para que lleguen a la demo pública.
 
 ## T01 — Pruebas y calidad
 
@@ -305,6 +306,69 @@ Injected: 1` | `schemas.py` rechaza caracteres de control y no ASCII con 422 y m
 - No se modificó la política de cuotas por IP: detrás de Render y Cloudflare `request.client.host` es la IP del proxy, de modo que los límites por IP (10/min, 2 concurrentes) actúan como límite compartido más estricto que el global (60/min, 10 concurrentes). Cambiarlo exigiría confiar en `X-Forwarded-For`, lo que contradice `test_spoofed_forwarded_header_does_not_bypass_rate_limit`.
 - `/docs` y `/openapi.json` siguen públicos en la API desplegada; no se decidió cerrarlos.
 
+## T10 — Segunda pasada: concurrencia, fuzzing y dependencias
+
+**Estado: correcciones aplicadas en el worktree el 2026-09-20; no desplegadas.** Continuación de T09 centrada en condiciones de carrera, entradas malformadas y cadena de suministro.
+
+### Defectos confirmados y corregidos
+
+| # | Defecto | Evidencia | Corrección |
+| --- | --- | --- | --- |
+| 1 | Excepción no controlada → HTTP 500 en modo local: `socket.getaddrinfo` lanza `UnicodeError`, no `gaierror`, cuando una etiqueta DNS está vacía o supera 63 caracteres. `https://a..b/x` bastaba | Fuzzing de 25 760 combinaciones sobre `POST /api/checks` | `_validate_resolved_addresses` captura `(OSError, UnicodeError)`; el caso se registra como comprobación fallida |
+| 2 | Excepción no controlada → HTTP 500 en modo local: `urlsplit("http://[")` lanza `ValueError: Invalid IPv6 URL` fuera de todo `try` | Mismo fuzzing | `validate_public_url` envuelve el parseo y el acceso a `hostname` y devuelve `UrlFormatError` |
+| 3 | Una comprobación de salud lenta que falla podía aterrizar después de una rápida que tuvo éxito y dejar la insignia en **Offline** con el backend disponible. Muy alcanzable en el plan gratuito: tras un arranque en frío el primer `/health` tarda, el visitante pulsa «Retry connection» y la segunda respuesta llega antes | Arnés de carrera sobre `useApiDashboard` | Cada preocupación (salud, historial, solicitud) lleva un token monótono; solo la llamada más reciente escribe el estado compartido |
+| 4 | Un refresco de historial lento sobrescribía una lista más reciente | Mismo arnés | Ídem |
+| 5 | Un fallo de historial obsoleto volvía a levantar el cartel de error tras un refresco correcto | Mismo arnés | Ídem |
+| 6 | `historyLoading` se apagaba mientras otro refresco seguía en vuelo: el indicador desaparecía y «Retry history» se rehabilitaba antes de tiempo | Mismo arnés | El `finally` solo limpia si el token sigue siendo el vigente |
+| 7 | El workflow de CI no declaraba `permissions`, así que el token heredaba los permisos por defecto pese a que ningún job escribe en el repositorio | Lectura de `.github/workflows/quality.yml` | `permissions: contents: read` a nivel de workflow |
+
+### Vulnerabilidades de dependencias
+
+`starlette==0.41.3` —resuelta transitivamente porque `fastapi==0.115.6` exige `starlette<0.42.0`— acumula **siete avisos GHSA, tres de ellos HIGH**, y el `anyio` del entorno local tenía uno CRITICAL:
+
+| Aviso | Severidad | Corregido en | ¿Aplica a API Pulse? |
+| --- | --- | --- | --- |
+| GHSA-82w8-qh3p-5jfq | HIGH | 1.3.1 | No: la aplicación nunca llama a `request.form()` |
+| GHSA-7f5h-v6xp-fcq8 | HIGH | 0.49.1 | No: no usa `FileResponse` |
+| GHSA-wqp7-x3pw-xc5r | HIGH | 1.1.0 | No: no usa `StaticFiles` |
+| GHSA-86qp-5c8j-p5mr / PYSEC-2026-161 (BadHost) | MODERATE | 1.0.1 | **Comprobado no explotable:** un `Host` envenenado deja `request.url.path` en `/admin/api/checks`, pero la aplicación enruta y filtra por `scope["path"]` y no consume la URL derivada del Host. El único punto que leía `request.url` era la redirección de barra final, eliminada en T09 |
+| GHSA-2c2j-9gv5-cj73 | MODERATE | 0.47.2 | No: no procesa multipart |
+| GHSA-x746-7m8f-x49c | MODERATE | 1.1.0 | No: no usa `HTTPEndpoint` |
+| GHSA-jp82-jpqv-5vv3 | LOW | 1.3.0 | No, por la misma razón que BadHost |
+| GHSA-82r6-8w77-94w6 (anyio) | CRITICAL | 4.14.2 | Afecta `TLSStream`; el entorno local tenía 4.12.0. `requirements.txt` no fija `anyio`, así que una instalación nueva ya resuelve una versión corregida |
+
+**Conclusión:** ninguno de los siete avisos es explotable en esta aplicación, pero `fastapi==0.115.6` impide actualizar Starlette y un `pip-audit` sobre el repositorio los reporta igualmente. Se verificó en un entorno virtual aislado que `fastapi==0.141.1` resuelve `starlette 1.6.0` y `anyio 4.15.1`, sin avisos, y que **las 89 pruebas y Ruff aprueban sin cambiar una línea de aplicación**; se reverificaron además los nueve comportamientos corregidos en T09. La actualización queda propuesta, no aplicada: cambia lo que se instala en producción y exige un redespliegue.
+
+`npm audit --omit=optional` devolvió cero vulnerabilidades. `httpx`, `psycopg`, `pydantic`, `pydantic-settings`, `SQLAlchemy`, `uvicorn`, `h11` y `certifi` no tienen avisos en sus versiones instaladas.
+
+### Comprobado sin hallazgos
+
+- **Fuzzing:** 25 760 combinaciones de URL, método, cabeceras y cuerpo contra `POST /api/checks` en ambos modos. Tras las correcciones 1 y 2, **cero respuestas 5xx y cero excepciones**; el historial siguió listando correctamente.
+- **Limitador bajo hilos reales:** con tope de 4 concurrentes y 24 hilos simultáneos, el pico observado fue exactamente 4, 20 rechazos y ningún contador negativo ni huérfano tras 60 solicitudes mezcladas.
+- **CORS con expresión regular:** Starlette 0.41.3 usa `fullmatch`, de modo que la expresión de desarrollo no admite sufijos tipo `http://localhost:5173.atacante.test`.
+- **Inyección SQL:** todo el acceso usa el ORM o `text("SELECT 1")` estático; no hay concatenacion de entrada.
+- El workflow no usa `pull_request_target` ni secretos.
+
+### Riesgos abiertos, no modificados
+
+- **Pool de base de datos frente a concurrencia.** `create_engine` fija `pool_size=2, max_overflow=1`: tres conexiones. Se comprobó que la cuarta espera `pool_timeout=10` y lanza `TimeoutError`, que sale como 500. `demo_concurrent_global` es 10. Hoy no es alcanzable porque detrás del proxy el tope por IP de 2 gobierna todo el tráfico, pero cualquier corrección del reparto por IP lo destaparía. Alinear ambos valores antes de tocar las cuotas.
+- **Modo local sin tope de respuesta.** `execute_api_request` lee el cuerpo completo del destino sin límite de bytes fuera del modo demo. Coherente con que ese modo no deba publicarse.
+- `/ready` abre una conexion a Neon sin autenticación en cada llamada.
+- `/docs` y `/openapi.json` siguen públicos.
+- La CI no audita dependencias de Python; solo `npm audit` cubre el frontend.
+
+### Comprobaciones ejecutadas
+
+- `pytest -p no:cacheprovider`: **89 aprobados, 1 omitido**, tanto con el conjunto fijado actual como con el entorno de prueba actualizado.
+- `ruff check` y `compileall`: aprobados en ambos entornos.
+- `npm test`: **12 aprobados**; `npm run lint` y `npm run build`: aprobados.
+- `npm audit --omit=optional`: cero vulnerabilidades. Consulta a OSV para los ocho paquetes Python instalados.
+
+### No ejecutado
+
+- Docker Engine no estaba disponible, así que no se repitió el smoke de PostgreSQL ni el stack de Compose en ejecución.
+- No se desplegó nada; la demo pública sigue con el código anterior a T09.
+
 ## Historial comprobado con Git
 
 | Commit | Fecha local | Resultado |
@@ -321,7 +385,7 @@ Estos nombres de fases provienen de commits. La numeración de validaciones del 
 
 ## Siguiente punto de entrada
 
-Desplegar manualmente las correcciones de T09 en Render (Blueprint con `autoDeployTrigger: "off"`) y repetir sobre la demo publicada las comprobaciones 1, 3 y 7. No queda un bloque obligatorio T00–T08. Como seguimiento opcional, vigilar cuotas gratuitas, observar la poda tras 24 horas reales, medir aislamiento de cuotas entre visitantes distintos y preparar migraciones explícitas antes de cambios de esquema. No seleccionar servicios pagados ni ampliar la demo a destinos arbitrarios sin una nueva decisión. La aceptación completa está en [el plan](PLAN_DE_CIERRE.md).
+Decidir la actualización de FastAPI propuesta en T10 y desplegar manualmente en Render las correcciones de T09 y T10 (Blueprint con `autoDeployTrigger: "off"`), repitiendo sobre la demo publicada las comprobaciones de barra final, cabeceras rechazadas, visibilidad del error del formulario y recuperación de la insignia tras un arranque en frío. No queda un bloque obligatorio T00–T08. Como seguimiento opcional, vigilar cuotas gratuitas, observar la poda tras 24 horas reales, medir aislamiento de cuotas entre visitantes distintos y preparar migraciones explícitas antes de cambios de esquema. No seleccionar servicios pagados ni ampliar la demo a destinos arbitrarios sin una nueva decisión. La aceptación completa está en [el plan](PLAN_DE_CIERRE.md).
 
 ## Comprobación de la entrega documental
 

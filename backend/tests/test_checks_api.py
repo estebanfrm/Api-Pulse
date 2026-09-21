@@ -164,3 +164,21 @@ def test_unknown_trailing_slash_paths_do_not_redirect_to_an_insecure_scheme(clie
     response = client.get("/health/", follow_redirects=False)
 
     assert response.status_code == 404
+
+
+def test_malformed_hostname_is_recorded_instead_of_crashing(client: TestClient) -> None:
+    response = client.post("/api/checks", json=_payload("https://a..b/resource"))
+
+    assert response.status_code == 200
+    check = response.json()["check"]
+    assert check["success"] is False
+    assert check["error_message"].startswith("Invalid URL target.")
+
+
+def test_unparseable_authority_is_recorded_instead_of_crashing(client: TestClient) -> None:
+    response = client.post("/api/checks", json=_payload("http://["))
+
+    assert response.status_code == 200
+    check = response.json()["check"]
+    assert check["success"] is False
+    assert check["error_message"].startswith("Invalid URL format.")

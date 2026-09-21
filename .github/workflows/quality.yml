@@ -8,6 +8,10 @@ on:
     branches:
       - main
 
+# No job needs to write to the repository; checkout only reads.
+permissions:
+  contents: read
+
 jobs:
   backend:
     name: Backend
