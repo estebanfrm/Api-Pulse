@@ -31,7 +31,9 @@
 3. **Modo local distinto del público.** En local continúa la validación DNS antes de httpx sin fijar la IP efectiva; no se ha probado una explotación. No exponer ese modo. En público el catálogo sintético usa `MockTransport`, sin DNS ni socket para los destinos de comprobación.
 4. **Esquema v1 sin migraciones.** `create_all` crea tablas vacías al arrancar, no cambia columnas existentes. T06 no altera el modelo y documenta que un cambio futuro requiere migración explícita, copia previa y rollback. La base Neon no está en la red privada de Render: se protege con credenciales/TLS, no con aislamiento de red entre proveedores.
 5. **CI ampliada y aprobada.** La primera CI del PR #4 falló en `npm audit` por respuestas 503/400 del registro; se resolvió en reintento sin cambiar dependencias. La CI final de T08 y la del merge `0cb28cf` aprobaron los cuatro jobs. La auditoría local devolvió cero hallazgos. La CI no cubre navegador/Neon; ambos se probaron manualmente en T07. Ver [evidencia](VALIDACION_T07.md).
-6. **Avisos de deprecación en pruebas.** pytest informa tres avisos en Starlette/FastAPI por `BlockingPortal` y `on_event`. No son fallos actuales, pero deben considerarse al actualizar ese stack.
+6. **Avisos de deprecación en pruebas.** T09 migró `on_event` a `lifespan`; pytest ya solo informa el aviso de `BlockingPortal` de Starlette. No es un fallo actual, pero debe considerarse al actualizar ese stack.
+7. **Avisos de dependencias cerrados.** `fastapi==0.115.6` anclaba `starlette<0.42.0`, que arrastraba siete avisos GHSA (tres HIGH); se comprobó uno por uno que ninguno era alcanzable aquí. `requirements.txt` pasa a `fastapi==0.141.1` (`starlette 1.6.0`, `anyio 4.15.1`, sin avisos) y la CI incorpora `pip-audit`. Ver T10.
+8. **Correcciones de T09 y T10 sin desplegar.** Las correcciones de la auditoría T09 están en el worktree y no se han publicado. El sitio y la API en Render siguen sirviendo `0cb28cf`/`a32bc4f`; `autoDeployTrigger: "off"` exige un despliegue manual para que lleguen a la demo pública.
 
 ## T01 — Pruebas y calidad
 
@@ -262,6 +264,114 @@ La [primera CI del PR #4](https://github.com/estebanfrm/Api-Pulse/actions/runs/3
 
 **Comprobaciones T08:** `git diff --cached --check` aprobó; un escaneo de Markdown encontró 11 enlaces relativos y 0 ausentes. El README renderizado y la imagen principal abrieron desde GitHub en la rama y, después del merge `0cb28cf`, desde `main`; GitHub reconoció MIT. Se repitieron localmente pytest (72 passed, 1 skipped, 3 avisos), Ruff, 8 tests frontend, ESLint, build público Vite (18 módulos) y `docker compose config --quiet` (aprobado con aviso de acceso a configuración global Docker). Docker Engine no estuvo disponible para repetir PostgreSQL localmente. La [CI del commit T08](https://github.com/estebanfrm/Api-Pulse/actions/runs/35541101176) y la [CI del merge](https://github.com/estebanfrm/Api-Pulse/actions/runs/35541246577) aprobaron Backend, Frontend, Docker Compose y PostgreSQL smoke. El campo Homepage del repositorio enlaza la demo. No se cambió código de aplicación ni se requirió nuevo deploy de Render.
 
+## T09 — Auditoría de bugs y correcciones
+
+**Estado: correcciones aplicadas en el worktree el 2026-09-20; no desplegadas.** Auditoría sobre `c9685de` que combinó lectura de código, sondas exploratorias contra la aplicación en modo público y local, y verificación de la demo publicada.
+
+### Defectos confirmados y corregidos
+
+| # | Defecto | Evidencia | Corrección |
+| --- | --- | --- | --- |
+| 1 | `/api/checks/` respondía `307` con `Location: http://…`: degradación de HTTPS a texto plano. `--no-proxy-headers` deja el esquema del origen sin cifrar y Starlette construye con él la redirección de barra final | `curl -i https://api-pulse-api.onrender.com/api/checks/` devolvió `location: http://api-pulse-api.onrender.com/api/checks` | `redirect_slashes=False` en `main.py` y alias `"/"` de las rutas de comprobaciones; `/health/` pasa a `404` en vez de redirigir |
+| 2 | El límite de tamaño de la demo comparaba la ruta exacta `/api/checks`, así que no cubría el alias con barra final | Sonda local: cuerpo mayor que `DEMO_MAX_REQUEST_BYTES` sobre `/api/checks/` | El middleware normaliza la barra final antes de comparar |
+| 3 | El esquema aceptaba nombres y valores de cabecera con CR/LF: inyección de cabeceras que solo detenía h11 en el socket, con mensaje «Network error» | Sonda local contra un destino controlado con `X-Bad: a
+Injected: 1` | `schemas.py` rechaza caracteres de control y no ASCII con 422 y mensaje explícito |
+| 4 | Una cabecera con acentos devolvía 200 y «Unexpected request error.», sin indicar la causa | Sonda local con `{"X-Ñ": "ü"}` | Misma validación de esquema del punto 3 |
+| 5 | En modo local la URL guardada conservaba `usuario:contraseña@`, y el historial la devolvía en claro | Sonda local: `https://user:SUPERSECRET@example.invalid/x` quedó íntegra en `/api/checks` | `redact_url_credentials` en `security.py` elimina las credenciales antes de persistir; la solicitud sigue usando la URL tal cual |
+| 6 | `https://DEMO.API-PULSE.INVALID/echo` se bloqueaba pese a ser equivalente: `netloc` se comparaba respetando mayúsculas | Sonda local contra `validate_demo_url` | Comparación de esquema y `netloc` en minúsculas; la ruta sigue siendo sensible a mayúsculas |
+| 7 | El error de validación del formulario se pintaba al final, bajo «Body JSON», mientras el botón «Send» está arriba: al pulsar parecía no ocurrir nada | Demo publicada con `{not json` en «Headers JSON»; el mensaje quedó fuera de pantalla | El mensaje se movió bajo la cabecera del panel, junto al botón, con `role="alert"` |
+| 8 | La gráfica mostraba «0 ms avg» junto a una línea con variación, porque los escenarios sintéticos responden en menos de un milisegundo | Demo publicada: 12 puntos de 0–1 ms y promedio redondeado a 0 | `ResponseTimeChart.vue` muestra `<1 ms` cuando el promedio es positivo y menor que 1 |
+| 9 | `formatHistoryDate` habría pintado «Invalid Date» ante un valor no interpretable | Revisión de código; `new Date(null)` además devuelve la época en vez de un valor inválido | La función devuelve `N/A` salvo para cadenas o números interpretables |
+
+### Comprobado sin hallazgos
+
+- Protección de destinos en modo local: `localhost`, `127.0.0.1`, `0.0.0.0`, `[::1]`, `[::ffff:127.0.0.1]`, `169.254.169.254`, IP decimal/octal, `file://` y `gopher://` quedaron rechazados y registrados como comprobación fallida.
+- Validación de esquema: método no permitido, cuerpo que no es objeto, JSON mal formado, `limit` fuera de rango y falta de `url` responden 422.
+- CORS de producción: el preflight desde el origen del sitio devuelve `GET, POST` y `Content-Type` sin credenciales.
+- Vista móvil de la demo publicada a 375 px: sin desbordamiento horizontal ni errores de consola.
+- El contador de concurrencia del limitador vuelve a cero tras una excepción y la limpieza periódica no deja claves activas huérfanas.
+
+### Comprobaciones ejecutadas
+
+- `pytest -p no:cacheprovider`: 80 aprobados, 1 omitido (smoke de PostgreSQL sin `TEST_POSTGRES_SMOKE`), 1 aviso.
+- `ruff check app tests ../tests/integration` y `python -m compileall app tests ../tests/integration`: aprobados.
+- `npm test` (9 aprobados), `npm run lint` y `npm run build` (18 módulos): aprobados.
+- `docker compose config -q` y `docker compose -p api-pulse-t03 -f compose.integration.yml config --quiet`: aprobados.
+- Verificación visual del punto 7 con Vite en el puerto 5199 y `VITE_PUBLIC_DEMO=true`.
+
+### No ejecutado
+
+- No se desplegó nada en Render ni se tocó Neon; la demo pública sigue con el código anterior.
+- No se ejecutó el smoke de PostgreSQL con base efímera local.
+- No se modificó la política de cuotas por IP: detrás de Render y Cloudflare `request.client.host` es la IP del proxy, de modo que los límites por IP (10/min, 2 concurrentes) actúan como límite compartido más estricto que el global (60/min, 10 concurrentes). Cambiarlo exigiría confiar en `X-Forwarded-For`, lo que contradice `test_spoofed_forwarded_header_does_not_bypass_rate_limit`.
+- `/docs` y `/openapi.json` siguen públicos en la API desplegada; no se decidió cerrarlos.
+
+## T10 — Segunda pasada: concurrencia, fuzzing y dependencias
+
+**Estado: correcciones aplicadas en el worktree el 2026-09-20; no desplegadas.** Continuación de T09 centrada en condiciones de carrera, entradas malformadas y cadena de suministro.
+
+### Defectos confirmados y corregidos
+
+| # | Defecto | Evidencia | Corrección |
+| --- | --- | --- | --- |
+| 1 | Excepción no controlada → HTTP 500 en modo local: `socket.getaddrinfo` lanza `UnicodeError`, no `gaierror`, cuando una etiqueta DNS está vacía o supera 63 caracteres. `https://a..b/x` bastaba | Fuzzing de 25 760 combinaciones sobre `POST /api/checks` | `_validate_resolved_addresses` captura `(OSError, UnicodeError)`; el caso se registra como comprobación fallida |
+| 2 | Excepción no controlada → HTTP 500 en modo local: `urlsplit("http://[")` lanza `ValueError: Invalid IPv6 URL` fuera de todo `try` | Mismo fuzzing | `validate_public_url` envuelve el parseo y el acceso a `hostname` y devuelve `UrlFormatError` |
+| 3 | Una comprobación de salud lenta que falla podía aterrizar después de una rápida que tuvo éxito y dejar la insignia en **Offline** con el backend disponible. Muy alcanzable en el plan gratuito: tras un arranque en frío el primer `/health` tarda, el visitante pulsa «Retry connection» y la segunda respuesta llega antes | Arnés de carrera sobre `useApiDashboard` | Cada preocupación (salud, historial, solicitud) lleva un token monótono; solo la llamada más reciente escribe el estado compartido |
+| 4 | Un refresco de historial lento sobrescribía una lista más reciente | Mismo arnés | Ídem |
+| 5 | Un fallo de historial obsoleto volvía a levantar el cartel de error tras un refresco correcto | Mismo arnés | Ídem |
+| 6 | `historyLoading` se apagaba mientras otro refresco seguía en vuelo: el indicador desaparecía y «Retry history» se rehabilitaba antes de tiempo | Mismo arnés | El `finally` solo limpia si el token sigue siendo el vigente |
+| 7 | El workflow de CI no declaraba `permissions`, así que el token heredaba los permisos por defecto pese a que ningún job escribe en el repositorio | Lectura de `.github/workflows/quality.yml` | `permissions: contents: read` a nivel de workflow |
+| 8 | El pool de base de datos sirve tres conexiones (`pool_size=2`, `max_overflow=1`) pero `demo_concurrent_global` admitía 10 solicitudes a la vez. Una solicitud retiene una conexión mientras confirma y poda, así que el excedente esperaba `pool_timeout=10` y salía como 500 en lugar de un 429 honesto | Se comprobó que la cuarta conexión lanza `TimeoutError` tras 10 s exactos | `DB_POOL_CAPACITY` queda expuesta en `database.py` y `demo_concurrent_global` baja a 3; una prueba fija el invariante para que no vuelva a desalinearse |
+
+### Vulnerabilidades de dependencias
+
+`starlette==0.41.3` —resuelta transitivamente porque `fastapi==0.115.6` exige `starlette<0.42.0`— acumula **siete avisos GHSA, tres de ellos HIGH**, y el `anyio` del entorno local tenía uno CRITICAL:
+
+| Aviso | Severidad | Corregido en | ¿Aplica a API Pulse? |
+| --- | --- | --- | --- |
+| GHSA-82w8-qh3p-5jfq | HIGH | 1.3.1 | No: la aplicación nunca llama a `request.form()` |
+| GHSA-7f5h-v6xp-fcq8 | HIGH | 0.49.1 | No: no usa `FileResponse` |
+| GHSA-wqp7-x3pw-xc5r | HIGH | 1.1.0 | No: no usa `StaticFiles` |
+| GHSA-86qp-5c8j-p5mr / PYSEC-2026-161 (BadHost) | MODERATE | 1.0.1 | **Comprobado no explotable:** un `Host` envenenado deja `request.url.path` en `/admin/api/checks`, pero la aplicación enruta y filtra por `scope["path"]` y no consume la URL derivada del Host. El único punto que leía `request.url` era la redirección de barra final, eliminada en T09 |
+| GHSA-2c2j-9gv5-cj73 | MODERATE | 0.47.2 | No: no procesa multipart |
+| GHSA-x746-7m8f-x49c | MODERATE | 1.1.0 | No: no usa `HTTPEndpoint` |
+| GHSA-jp82-jpqv-5vv3 | LOW | 1.3.0 | No, por la misma razón que BadHost |
+| GHSA-82r6-8w77-94w6 (anyio) | CRITICAL | 4.14.2 | Afecta `TLSStream`; el entorno local tenía 4.12.0. `requirements.txt` no fija `anyio`, así que una instalación nueva ya resuelve una versión corregida |
+
+**Conclusión y decisión aplicada:** ninguno de los siete avisos resultó explotable en esta aplicación, pero `fastapi==0.115.6` impedía actualizar Starlette y cualquier auditoría del repositorio los reportaba igualmente. El usuario eligió actualizar y añadir la auditoría a la CI. `requirements.txt` pasa a `fastapi==0.141.1`, que resuelve `starlette 1.6.0` y `anyio 4.15.1`, ambos sin avisos, **sin cambiar una línea de código de aplicación**. Las dependencias transitivas se dejan sin fijar a propósito: fijarlas reproduciría exactamente la trampa que originó este hallazgo, y ahora la CI detecta el problema en su lugar.
+
+El job `Python audit` ejecuta `pip-audit -r backend/requirements.txt` en un entorno propio, para que instalar el auditor no altere lo que resuelven las pruebas. Se comprobó que **discrimina**: con el anclaje anterior reporta 14 identificadores sobre `starlette 0.41.3` y termina en código 1; con el nuevo responde `No known vulnerabilities found` y termina en 0.
+
+`npm audit --omit=optional` devolvió cero vulnerabilidades. `httpx`, `psycopg`, `pydantic`, `pydantic-settings`, `SQLAlchemy`, `uvicorn`, `h11` y `certifi` no tienen avisos en sus versiones instaladas.
+
+### Comprobado sin hallazgos
+
+- **Fuzzing:** 25 760 combinaciones de URL, método, cabeceras y cuerpo contra `POST /api/checks` en ambos modos. Tras las correcciones 1 y 2, **cero respuestas 5xx y cero excepciones**; el historial siguió listando correctamente. Se repitió con las dependencias actualizadas, con el mismo resultado.
+- **Limitador bajo hilos reales:** con tope de 4 concurrentes y 24 hilos simultáneos, el pico observado fue exactamente 4, 20 rechazos y ningún contador negativo ni huérfano tras 60 solicitudes mezcladas.
+- **CORS con expresión regular:** Starlette 0.41.3 usa `fullmatch`, de modo que la expresión de desarrollo no admite sufijos tipo `http://localhost:5173.atacante.test`.
+- **Inyección SQL:** todo el acceso usa el ORM o `text("SELECT 1")` estático; no hay concatenacion de entrada.
+- El workflow no usa `pull_request_target` ni secretos.
+
+### Riesgos abiertos, no modificados
+
+- **Capacidad de concurrencia limitada por el plan gratuito.** Tras alinear la cuota con el pool (defecto 8), el tope global es 3 solicitudes simultáneas. Subirlo exigiría más conexiones de Neon Free, que el usuario decidió no consumir. Con las tres ocupadas, `/ready` puede esperar hasta `pool_timeout`.
+- **Modo local sin tope de respuesta.** `execute_api_request` lee el cuerpo completo del destino sin límite de bytes fuera del modo demo. Coherente con que ese modo no deba publicarse.
+- `/ready` abre una conexion a Neon sin autenticación en cada llamada.
+- `/docs` y `/openapi.json` siguen públicos.
+- `TestClient` emite `StarletteDeprecationWarning` pidiendo `httpx2`; no es un fallo, pero hay que tenerlo en cuenta al actualizar ese stack de nuevo.
+
+### Comprobaciones ejecutadas
+
+- `pytest -p no:cacheprovider`: **90 aprobados, 1 omitido**, tanto antes como después de actualizar FastAPI; se reverificaron uno a uno los comportamientos corregidos en T09.
+- `ruff check` y `compileall`: aprobados en ambos entornos.
+- `npm test`: **12 aprobados**; `npm run lint` y `npm run build`: aprobados.
+- `npm audit --omit=optional`: cero vulnerabilidades. Consulta a OSV para los ocho paquetes Python instalados.
+
+### No ejecutado
+
+- Docker Engine no estaba disponible, así que no se repitió el smoke de PostgreSQL ni el stack de Compose en ejecución.
+- No se desplegó nada; la demo pública sigue con el código anterior a T09.
+
 ## Historial comprobado con Git
 
 | Commit | Fecha local | Resultado |
@@ -278,7 +388,7 @@ Estos nombres de fases provienen de commits. La numeración de validaciones del 
 
 ## Siguiente punto de entrada
 
-No queda un bloque obligatorio T00–T08. Como seguimiento opcional, vigilar cuotas gratuitas, observar la poda tras 24 horas reales, medir aislamiento de cuotas entre visitantes distintos y preparar migraciones explícitas antes de cambios de esquema. No seleccionar servicios pagados ni ampliar la demo a destinos arbitrarios sin una nueva decisión. La aceptación completa está en [el plan](PLAN_DE_CIERRE.md).
+Decidir la actualización de FastAPI propuesta en T10 y desplegar manualmente en Render las correcciones de T09 y T10 (Blueprint con `autoDeployTrigger: "off"`), repitiendo sobre la demo publicada las comprobaciones de barra final, cabeceras rechazadas, visibilidad del error del formulario y recuperación de la insignia tras un arranque en frío. No queda un bloque obligatorio T00–T08. Como seguimiento opcional, vigilar cuotas gratuitas, observar la poda tras 24 horas reales, medir aislamiento de cuotas entre visitantes distintos y preparar migraciones explícitas antes de cambios de esquema. No seleccionar servicios pagados ni ampliar la demo a destinos arbitrarios sin una nueva decisión. La aceptación completa está en [el plan](PLAN_DE_CIERRE.md).
 
 ## Comprobación de la entrega documental
 

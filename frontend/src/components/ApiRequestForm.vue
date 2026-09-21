@@ -11,6 +11,8 @@
       </button>
     </div>
 
+    <p v-if="localError" class="error-text" role="alert">{{ localError }}</p>
+
     <label class="field">
       <span>{{ publicDemo ? "Scenario" : "URL" }}</span>
       <select v-if="publicDemo" v-model="url">
@@ -40,8 +42,6 @@
       <span>Body JSON</span>
       <textarea v-model="bodyText" spellcheck="false" rows="7"></textarea>
     </label>
-
-    <p v-if="localError" class="error-text">{{ localError }}</p>
   </form>
 </template>
 

@@ -6,6 +6,19 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 AllowedMethod = Literal["GET", "POST", "PUT", "DELETE"]
 
+HEADER_TEXT_ERROR = (
+    "Header names and values must use printable ASCII characters without line breaks."
+)
+
+
+def _is_unsafe_header_text(text: str) -> bool:
+    """Reject control characters and non-ASCII text before they reach the HTTP client.
+
+    CR, LF and NUL are the characters used for header injection, and non-ASCII text
+    fails inside httpx with an opaque error instead of a usable message.
+    """
+    return any(character != "\t" and (ord(character) < 32 or ord(character) > 126) for character in text)
+
 
 class ApiCheckCreate(BaseModel):
     url: str = Field(..., min_length=1, max_length=2048)
@@ -33,7 +46,10 @@ class ApiCheckCreate(BaseModel):
                 raise ValueError("Header names must be non-empty strings.")
             if isinstance(header_value, (dict, list)):
                 raise ValueError("Header values must be strings, numbers, booleans, or null.")
-            normalized[key] = "" if header_value is None else str(header_value)
+            text = "" if header_value is None else str(header_value)
+            if _is_unsafe_header_text(key) or _is_unsafe_header_text(text):
+                raise ValueError(HEADER_TEXT_ERROR)
+            normalized[key] = text
         return normalized
 
     @field_validator("body")

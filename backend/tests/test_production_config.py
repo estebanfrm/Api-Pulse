@@ -88,3 +88,13 @@ def test_ready_checks_database_without_leaking_error(client: TestClient, monkeyp
     assert response.status_code == 503
     assert response.json() == {"detail": "Database unavailable."}
     assert "secret-internal-host" not in response.text
+
+
+def test_demo_concurrency_never_exceeds_the_connection_pool() -> None:
+    # A surplus request would wait pool_timeout seconds and then fail with a 500
+    # instead of being rejected with an honest 429.
+    from app.config import settings
+    from app.database import DB_POOL_CAPACITY
+
+    assert settings.demo_concurrent_global <= DB_POOL_CAPACITY
+    assert settings.demo_concurrent_ip <= settings.demo_concurrent_global

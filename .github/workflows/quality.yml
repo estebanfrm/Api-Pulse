@@ -8,6 +8,10 @@ on:
     branches:
       - main
 
+# No job needs to write to the repository; checkout only reads.
+permissions:
+  contents: read
+
 jobs:
   backend:
     name: Backend
@@ -37,6 +41,27 @@ jobs:
 
       - name: Run Ruff
         run: ruff check app tests ../tests/integration
+
+  python-audit:
+    name: Python audit
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install pip-audit
+        run: pip install pip-audit
+
+      # Audits the runtime requirements only; pip-audit resolves the transitive tree,
+      # which is where a pinned direct dependency can hold back a patched one. It runs
+      # in its own job so installing the auditor cannot change what the tests resolve.
+      - name: Audit runtime dependencies
+        run: pip-audit -r backend/requirements.txt
 
   postgres-smoke:
     name: PostgreSQL smoke

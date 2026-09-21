@@ -14,12 +14,15 @@ from app.schemas import ApiCheckCreate, ApiCheckRead, ApiCheckRunResponse
 from app.services.api_client import ApiClientResult, execute_api_request
 from app.services.demo import BLOCKED_URL, DEMO_URLS, safe_summary, scenario_response, validate_demo_url
 from app.services.limits import demo_limiter
-from app.services.security import SecurityValidationError, validate_public_url
+from app.services.security import SecurityValidationError, redact_url_credentials, validate_public_url
 
 router = APIRouter()
 
 
+# The "/" alias keeps /api/checks/ working without a slash redirect, which would be
+# built from the unencrypted origin scheme behind the proxy.
 @router.post("", response_model=ApiCheckRunResponse)
+@router.post("/", response_model=ApiCheckRunResponse, include_in_schema=False)
 def create_check(payload: ApiCheckCreate, request: Request, db: Session = Depends(get_db)) -> ApiCheckRunResponse:
     if settings.public_demo:
         client_key = request.client.host if request.client else "unknown"
@@ -29,7 +32,7 @@ def create_check(payload: ApiCheckCreate, request: Request, db: Session = Depend
 
 
 def _run_check(payload: ApiCheckCreate, db: Session) -> ApiCheckRunResponse:
-    stored_url = payload.url
+    stored_url = redact_url_credentials(payload.url)
     try:
         if settings.public_demo:
             safe_url = validate_demo_url(payload.url)
@@ -99,6 +102,7 @@ def _run_check(payload: ApiCheckCreate, db: Session) -> ApiCheckRunResponse:
 
 
 @router.get("", response_model=list[ApiCheckRead])
+@router.get("/", response_model=list[ApiCheckRead], include_in_schema=False)
 def list_checks(
     limit: int = Query(default=50, ge=1, le=100),
     db: Session = Depends(get_db),

@@ -5,7 +5,7 @@
         <p class="eyebrow">Latency</p>
         <h2>Response times</h2>
       </div>
-      <strong>{{ averageTime }} ms avg</strong>
+      <strong>{{ averageLabel }} avg</strong>
     </div>
 
     <svg class="chart" viewBox="0 0 640 220" role="img" aria-label="Response time chart">
@@ -62,6 +62,16 @@ const averageTime = computed(() => {
     return 0;
   }
   const total = data.reduce((sum, item) => sum + item.response_time_ms, 0);
-  return Math.round(total / data.length);
+  return total / data.length;
+});
+
+// The demo scenarios answer in well under a millisecond, so rounding alone would
+// display "0 ms avg" next to a chart that clearly shows movement.
+const averageLabel = computed(() => {
+  const average = averageTime.value;
+  if (average > 0 && average < 1) {
+    return "<1 ms";
+  }
+  return `${Math.round(average)} ms`;
 });
 </script>

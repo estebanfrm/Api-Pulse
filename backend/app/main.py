@@ -1,3 +1,6 @@
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -8,7 +11,22 @@ from app.config import Settings, settings
 from app.database import SessionLocal, engine, init_database
 from app.routers.checks import _prune_history, router as checks_router
 
-app = FastAPI(title="API Pulse", version="0.1.0")
+
+@asynccontextmanager
+async def lifespan(_: FastAPI) -> AsyncIterator[None]:
+    init_database()
+    if settings.public_demo:
+        with SessionLocal() as db:
+            _prune_history(db)
+    yield
+
+
+# redirect_slashes stays off: uvicorn runs with --no-proxy-headers, so Starlette would
+# build the slash redirect from the unencrypted origin scheme and answer an HTTPS
+# request with an http:// Location. The checks routes accept both spellings instead.
+app = FastAPI(title="API Pulse", version="0.1.0", redirect_slashes=False, lifespan=lifespan)
+
+CHECKS_PATH = "/api/checks"
 
 
 class DemoBodyLimitMiddleware:
@@ -16,7 +34,10 @@ class DemoBodyLimitMiddleware:
         self.wrapped_app = wrapped_app
 
     async def __call__(self, scope: dict, receive: object, send: object) -> None:
-        if not (settings.public_demo and scope["type"] == "http" and scope["method"] == "POST" and scope["path"] == "/api/checks"):
+        if not (settings.public_demo and scope["type"] == "http" and scope["method"] == "POST"):
+            await self.wrapped_app(scope, receive, send)
+            return
+        if (scope["path"].rstrip("/") or "/") != CHECKS_PATH:
             await self.wrapped_app(scope, receive, send)
             return
 
@@ -55,6 +76,7 @@ class DemoBodyLimitMiddleware:
 
 app.add_middleware(DemoBodyLimitMiddleware)
 
+
 def cors_options(config: Settings) -> dict[str, object]:
     public = config.app_env == "production"
     return {
@@ -67,14 +89,6 @@ def cors_options(config: Settings) -> dict[str, object]:
 
 
 app.add_middleware(CORSMiddleware, **cors_options(settings))
-
-
-@app.on_event("startup")
-def on_startup() -> None:
-    init_database()
-    if settings.public_demo:
-        with SessionLocal() as db:
-            _prune_history(db)
 
 
 @app.get("/health")
@@ -92,4 +106,4 @@ def ready() -> dict[str, str]:
     return {"status": "ready"}
 
 
-app.include_router(checks_router, prefix="/api/checks", tags=["checks"])
+app.include_router(checks_router, prefix=CHECKS_PATH, tags=["checks"])

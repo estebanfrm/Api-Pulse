@@ -112,3 +112,73 @@ def test_history_rejects_limits_outside_allowed_range(client: TestClient, limit:
     response = client.get(f"/api/checks?limit={limit}")
 
     assert response.status_code == 422
+
+
+@pytest.mark.parametrize(
+    "header",
+    [
+        {"X-Bad\r\nInjected": "yes"},
+        {"X-Bad": "value\r\nInjected: yes"},
+    ],
+)
+def test_rejects_headers_carrying_line_breaks(client: TestClient, header: dict[str, str]) -> None:
+    response = client.post("/api/checks", json=_payload("https://api.example.com", headers=header))
+
+    assert response.status_code == 422
+    assert "printable ASCII" in response.text
+
+
+def test_rejects_non_ascii_headers_with_a_readable_message(client: TestClient) -> None:
+    response = client.post(
+        "/api/checks",
+        json=_payload("https://api.example.com", headers={"X-Sesion": "caf\u00e9"}),
+    )
+
+    assert response.status_code == 422
+    assert "printable ASCII" in response.text
+
+
+def test_stored_url_never_keeps_basic_auth_credentials(client: TestClient) -> None:
+    response = client.post(
+        "/api/checks",
+        json=_payload("https://demo-user:demo-password@api.example.invalid/resource"),
+    )
+
+    assert response.status_code == 200
+    assert response.json()["check"]["url"] == "https://api.example.invalid/resource"
+    history = client.get("/api/checks").text
+    assert "demo-password" not in history
+    assert "demo-user" not in history
+
+
+def test_checks_path_with_a_trailing_slash_is_served_without_a_redirect(client: TestClient) -> None:
+    created = client.post("/api/checks/", json=_payload("http://localhost/slash"), follow_redirects=False)
+    listed = client.get("/api/checks/", follow_redirects=False)
+
+    assert created.status_code == 200
+    assert listed.status_code == 200
+    assert [item["url"] for item in listed.json()] == ["http://localhost/slash"]
+
+
+def test_unknown_trailing_slash_paths_do_not_redirect_to_an_insecure_scheme(client: TestClient) -> None:
+    response = client.get("/health/", follow_redirects=False)
+
+    assert response.status_code == 404
+
+
+def test_malformed_hostname_is_recorded_instead_of_crashing(client: TestClient) -> None:
+    response = client.post("/api/checks", json=_payload("https://a..b/resource"))
+
+    assert response.status_code == 200
+    check = response.json()["check"]
+    assert check["success"] is False
+    assert check["error_message"].startswith("Invalid URL target.")
+
+
+def test_unparseable_authority_is_recorded_instead_of_crashing(client: TestClient) -> None:
+    response = client.post("/api/checks", json=_payload("http://["))
+
+    assert response.status_code == 200
+    check = response.json()["check"]
+    assert check["success"] is False
+    assert check["error_message"].startswith("Invalid URL format.")
