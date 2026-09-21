@@ -47,7 +47,7 @@ Abre la interfaz en `http://localhost:5173`, la API en `http://localhost:8000` y
 
 ## Calidad y límites
 
-El [workflow de calidad](https://github.com/estebanfrm/Api-Pulse/actions/workflows/quality.yml) ejecuta pruebas de backend/frontend, Ruff, lint, build, auditoría npm, validación de Compose y un smoke con PostgreSQL 16 efímero. La [validación pública de T07](docs/VALIDACION_T07.md) registra pruebas reales de HTTPS, CORS, cuatro métodos, errores, rechazo de destinos externos, privacidad, cuotas, persistencia, navegador y recuperación tras inactividad.
+El [workflow de calidad](https://github.com/estebanfrm/Api-Pulse/actions/workflows/quality.yml) ejecuta pruebas de backend/frontend, Ruff, lint, build, auditoría de dependencias de Python (`pip-audit`) y de npm, validación de Compose y un smoke con PostgreSQL 16 efímero. La [validación pública de T07](docs/VALIDACION_T07.md) registra pruebas reales de HTTPS, CORS, cuatro métodos, errores, rechazo de destinos externos, privacidad, cuotas, persistencia, navegador y recuperación tras inactividad.
 
 - Los tiempos de la demo corresponden a respuestas **sintéticas**, no miden la latencia de una API remota. No hay monitorización programada ni alertas.
 - Se aplican límites de solicitudes, concurrencia y tamaño. Las cuotas viven en memoria de una única instancia; se comprobó un 429 desde un cliente, pero no la separación por IP entre visitantes distintos detrás del proxy.

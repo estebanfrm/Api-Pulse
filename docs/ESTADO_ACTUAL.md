@@ -32,7 +32,7 @@
 4. **Esquema v1 sin migraciones.** `create_all` crea tablas vacías al arrancar, no cambia columnas existentes. T06 no altera el modelo y documenta que un cambio futuro requiere migración explícita, copia previa y rollback. La base Neon no está en la red privada de Render: se protege con credenciales/TLS, no con aislamiento de red entre proveedores.
 5. **CI ampliada y aprobada.** La primera CI del PR #4 falló en `npm audit` por respuestas 503/400 del registro; se resolvió en reintento sin cambiar dependencias. La CI final de T08 y la del merge `0cb28cf` aprobaron los cuatro jobs. La auditoría local devolvió cero hallazgos. La CI no cubre navegador/Neon; ambos se probaron manualmente en T07. Ver [evidencia](VALIDACION_T07.md).
 6. **Avisos de deprecación en pruebas.** T09 migró `on_event` a `lifespan`; pytest ya solo informa el aviso de `BlockingPortal` de Starlette. No es un fallo actual, pero debe considerarse al actualizar ese stack.
-7. **Avisos de dependencias no explotables pero abiertos.** `fastapi==0.115.6` ancla `starlette<0.42.0`, que arrastra siete avisos GHSA (tres HIGH). Se comprobó uno por uno que ninguno es alcanzable en esta aplicación, y que actualizar a `fastapi==0.141.1` los cierra sin romper pruebas. Decisión pendiente del usuario. Ver T10.
+7. **Avisos de dependencias cerrados.** `fastapi==0.115.6` anclaba `starlette<0.42.0`, que arrastraba siete avisos GHSA (tres HIGH); se comprobó uno por uno que ninguno era alcanzable aquí. `requirements.txt` pasa a `fastapi==0.141.1` (`starlette 1.6.0`, `anyio 4.15.1`, sin avisos) y la CI incorpora `pip-audit`. Ver T10.
 8. **Correcciones de T09 y T10 sin desplegar.** Las correcciones de la auditoría T09 están en el worktree y no se han publicado. El sitio y la API en Render siguen sirviendo `0cb28cf`/`a32bc4f`; `autoDeployTrigger: "off"` exige un despliegue manual para que lleguen a la demo pública.
 
 ## T01 — Pruebas y calidad
@@ -338,13 +338,15 @@ Injected: 1` | `schemas.py` rechaza caracteres de control y no ASCII con 422 y m
 | GHSA-jp82-jpqv-5vv3 | LOW | 1.3.0 | No, por la misma razón que BadHost |
 | GHSA-82r6-8w77-94w6 (anyio) | CRITICAL | 4.14.2 | Afecta `TLSStream`; el entorno local tenía 4.12.0. `requirements.txt` no fija `anyio`, así que una instalación nueva ya resuelve una versión corregida |
 
-**Conclusión:** ninguno de los siete avisos es explotable en esta aplicación, pero `fastapi==0.115.6` impide actualizar Starlette y un `pip-audit` sobre el repositorio los reporta igualmente. Se verificó en un entorno virtual aislado que `fastapi==0.141.1` resuelve `starlette 1.6.0` y `anyio 4.15.1`, sin avisos, y que **las 89 pruebas y Ruff aprueban sin cambiar una línea de aplicación**; se reverificaron además los nueve comportamientos corregidos en T09. La actualización queda propuesta, no aplicada: cambia lo que se instala en producción y exige un redespliegue.
+**Conclusión y decisión aplicada:** ninguno de los siete avisos resultó explotable en esta aplicación, pero `fastapi==0.115.6` impedía actualizar Starlette y cualquier auditoría del repositorio los reportaba igualmente. El usuario eligió actualizar y añadir la auditoría a la CI. `requirements.txt` pasa a `fastapi==0.141.1`, que resuelve `starlette 1.6.0` y `anyio 4.15.1`, ambos sin avisos, **sin cambiar una línea de código de aplicación**. Las dependencias transitivas se dejan sin fijar a propósito: fijarlas reproduciría exactamente la trampa que originó este hallazgo, y ahora la CI detecta el problema en su lugar.
+
+El job `Python audit` ejecuta `pip-audit -r backend/requirements.txt` en un entorno propio, para que instalar el auditor no altere lo que resuelven las pruebas. Se comprobó que **discrimina**: con el anclaje anterior reporta 14 identificadores sobre `starlette 0.41.3` y termina en código 1; con el nuevo responde `No known vulnerabilities found` y termina en 0.
 
 `npm audit --omit=optional` devolvió cero vulnerabilidades. `httpx`, `psycopg`, `pydantic`, `pydantic-settings`, `SQLAlchemy`, `uvicorn`, `h11` y `certifi` no tienen avisos en sus versiones instaladas.
 
 ### Comprobado sin hallazgos
 
-- **Fuzzing:** 25 760 combinaciones de URL, método, cabeceras y cuerpo contra `POST /api/checks` en ambos modos. Tras las correcciones 1 y 2, **cero respuestas 5xx y cero excepciones**; el historial siguió listando correctamente.
+- **Fuzzing:** 25 760 combinaciones de URL, método, cabeceras y cuerpo contra `POST /api/checks` en ambos modos. Tras las correcciones 1 y 2, **cero respuestas 5xx y cero excepciones**; el historial siguió listando correctamente. Se repitió con las dependencias actualizadas, con el mismo resultado.
 - **Limitador bajo hilos reales:** con tope de 4 concurrentes y 24 hilos simultáneos, el pico observado fue exactamente 4, 20 rechazos y ningún contador negativo ni huérfano tras 60 solicitudes mezcladas.
 - **CORS con expresión regular:** Starlette 0.41.3 usa `fullmatch`, de modo que la expresión de desarrollo no admite sufijos tipo `http://localhost:5173.atacante.test`.
 - **Inyección SQL:** todo el acceso usa el ORM o `text("SELECT 1")` estático; no hay concatenacion de entrada.
@@ -356,11 +358,11 @@ Injected: 1` | `schemas.py` rechaza caracteres de control y no ASCII con 422 y m
 - **Modo local sin tope de respuesta.** `execute_api_request` lee el cuerpo completo del destino sin límite de bytes fuera del modo demo. Coherente con que ese modo no deba publicarse.
 - `/ready` abre una conexion a Neon sin autenticación en cada llamada.
 - `/docs` y `/openapi.json` siguen públicos.
-- La CI no audita dependencias de Python; solo `npm audit` cubre el frontend.
+- `TestClient` emite `StarletteDeprecationWarning` pidiendo `httpx2`; no es un fallo, pero hay que tenerlo en cuenta al actualizar ese stack de nuevo.
 
 ### Comprobaciones ejecutadas
 
-- `pytest -p no:cacheprovider`: **90 aprobados, 1 omitido**, tanto con el conjunto fijado actual como con el entorno de prueba actualizado.
+- `pytest -p no:cacheprovider`: **90 aprobados, 1 omitido**, tanto antes como después de actualizar FastAPI; se reverificaron uno a uno los comportamientos corregidos en T09.
 - `ruff check` y `compileall`: aprobados en ambos entornos.
 - `npm test`: **12 aprobados**; `npm run lint` y `npm run build`: aprobados.
 - `npm audit --omit=optional`: cero vulnerabilidades. Consulta a OSV para los ocho paquetes Python instalados.

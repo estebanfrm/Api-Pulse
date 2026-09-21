@@ -113,20 +113,21 @@ docker compose exec -T frontend npm audit --omit=optional
 
 Comprueba el código de salida de cada comando antes de continuar. Un fallo de Docker no debe confundirse con un resultado de pytest.
 
-Alternativa nativa desde backend: usar `.\.venv\Scripts\python.exe -m pytest`, `-m ruff check app tests ..\tests\integration` y `-m compileall app tests ..\tests\integration`. Desde frontend: `npm ci`, `npm test`, `npm run build`, `npm run lint`, `npm audit --omit=optional`.
+Alternativa nativa desde backend: usar `.\.venv\Scripts\python.exe -m pytest`, `-m ruff check app tests ..\tests\integration` y `-m compileall app tests ..\tests\integration`. Para repetir la auditoría de dependencias de Python fuera de la CI, instala `pip-audit` en un entorno aparte y ejecuta `pip-audit -r backend\requirements.txt` desde la raíz; instalarlo junto a las dependencias de prueba cambiaría lo que resuelven. Desde frontend: `npm ci`, `npm test`, `npm run build`, `npm run lint`, `npm audit --omit=optional`.
 
 ## Qué cubre la CI actual
 
 `.github/workflows/quality.yml` se ejecuta en PR hacia main y push a main:
 
 - Backend: compilación, pytest y Ruff, incluido el fixture Python de integración; Python 3.12.
+- Auditoría de Python: `pip-audit -r backend/requirements.txt` en un job propio, para que instalar el auditor no altere el entorno que ejecutan las pruebas. Resuelve el árbol transitivo, que es donde una dependencia directa fijada puede retener una versión sin parchear.
 - Frontend: npm ci, pruebas de estado de la interfaz, build, lint y audit; Node 22.
 - Docker Compose: sintaxis/interpolación de las configuraciones base e integrada.
 - PostgreSQL smoke: levanta PostgreSQL 16 efímero, arranca la aplicación en demo controlada, comprueba `/ready`, creación e historial tras reiniciar el cliente. No usa Neon ni destinatarios externos.
 
 No publica. La suite backend general usa SQLite en memoria, sustituye la dependencia de sesión y simula DNS/HTTP; el job PostgreSQL separado cubre startup/persistencia con PostgreSQL real mediante `TestClient` como context manager. No verifica Neon, Render ni el dominio final. Las pruebas frontend usan el ejecutor integrado de Node y servicios simulados; comprueban la coordinación de estados, no sustituyen la validación en navegador.
 
-`npm audit --omit=optional` cubre el conjunto de dependencias que analiza ese comando; no certifica el backend, las imágenes o toda la seguridad del producto.
+`npm audit --omit=optional` y `pip-audit` cubren el conjunto de dependencias que analiza cada comando frente a los avisos publicados en su base de datos; no certifican las imágenes, la configuración de despliegue ni toda la seguridad del producto. `pip-audit` audita `requirements.txt`, no las dependencias exclusivas de desarrollo. Un aviso reportado tampoco implica que sea alcanzable en esta aplicación: hay que comprobar si el código usa la función afectada.
 
 ## Comprobación integrada
 
