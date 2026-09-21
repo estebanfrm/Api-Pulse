@@ -33,7 +33,8 @@
 5. **CI ampliada y aprobada.** La primera CI del PR #4 falló en `npm audit` por respuestas 503/400 del registro; se resolvió en reintento sin cambiar dependencias. La CI final de T08 y la del merge `0cb28cf` aprobaron los cuatro jobs. La auditoría local devolvió cero hallazgos. La CI no cubre navegador/Neon; ambos se probaron manualmente en T07. Ver [evidencia](VALIDACION_T07.md).
 6. **Avisos de deprecación en pruebas.** T09 migró `on_event` a `lifespan`; pytest ya solo informa el aviso de `BlockingPortal` de Starlette. No es un fallo actual, pero debe considerarse al actualizar ese stack.
 7. **Avisos de dependencias cerrados.** `fastapi==0.115.6` anclaba `starlette<0.42.0`, que arrastraba siete avisos GHSA (tres HIGH); se comprobó uno por uno que ninguno era alcanzable aquí. `requirements.txt` pasa a `fastapi==0.141.1` (`starlette 1.6.0`, `anyio 4.15.1`, sin avisos) y la CI incorpora `pip-audit`. Ver T10.
-8. **Correcciones de T09 y T10 sin desplegar.** Las correcciones de la auditoría T09 están en el worktree y no se han publicado. El sitio y la API en Render siguen sirviendo `0cb28cf`/`a32bc4f`; `autoDeployTrigger: "off"` exige un despliegue manual para que lleguen a la demo pública.
+8. **Servicios de Render anclados a una rama obsoleta.** `render.yaml` no fijaba `branch`, así que los servicios seguían `codex/api-pulse-t07-publication`, ocho commits por detrás de `main`, y un despliegue manual republicaba código antiguo sin error visible. Corregido en el repositorio; queda ajustar la rama en el panel. Ver T11.
+9. **Correcciones de T09 y T10 sin desplegar.** Las correcciones de la auditoría T09 están en el worktree y no se han publicado. El sitio y la API en Render siguen sirviendo `0cb28cf`/`a32bc4f`; `autoDeployTrigger: "off"` exige un despliegue manual para que lleguen a la demo pública.
 
 ## T01 — Pruebas y calidad
 
@@ -371,6 +372,20 @@ El job `Python audit` ejecuta `pip-audit -r backend/requirements.txt` en un ento
 
 - Docker Engine no estaba disponible, así que no se repitió el smoke de PostgreSQL ni el stack de Compose en ejecución.
 - No se desplegó nada; la demo pública sigue con el código anterior a T09.
+
+## T11 — Los servicios de Render apuntaban a una rama obsoleta
+
+**Estado: corregido en el repositorio el 2026-09-20; requiere una acción en el panel de Render.**
+
+Tras fusionar el [PR #6](https://github.com/estebanfrm/Api-Pulse/pull/6) en `main` (merge `7460134`, CI de cinco jobs aprobada), un despliegue manual de `api-pulse-web` publicó `a4d6be2`, no `main`. El panel mostraba el servicio siguiendo `codex/api-pulse-t07-publication`, **ocho commits por detrás de `main`** y sin ninguna de las correcciones de T09, T10 ni la actualización de FastAPI.
+
+**Causa:** `render.yaml` no declaraba `branch`, así que cada servicio conservó la rama desde la que se creó el Blueprint. El despliegue manual funcionaba correctamente; reeditaba el mismo código antiguo. El síntoma es silencioso: no hay error, y el servicio queda `Live` con un commit válido pero caduco.
+
+**Corrección:** ambos servicios fijan `branch: main` en `render.yaml`.
+
+**Acción manual pendiente:** un cambio de `branch` en el Blueprint solo se aplica cuando Render lo sincroniza, y los servicios ya quedaron anclados. Hay que corregir la rama en Settings de `api-pulse-api` y `api-pulse-web` antes del despliegue. El servicio de la API además debe limpiar la caché de compilación para recoger `fastapi==0.141.1`.
+
+**Verificación en producción, pendiente:** `GET /api/checks/` sin `Location` hacia `http://`, una cabecera no ASCII con 422, y la insignia recuperándose tras un arranque en frío. Al cierre de este bloque, `https://api-pulse-api.onrender.com/api/checks/` seguía respondiendo `307` hacia `http://`.
 
 ## Historial comprobado con Git
 

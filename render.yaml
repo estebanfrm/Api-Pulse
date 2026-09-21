@@ -5,6 +5,9 @@ services:
     runtime: python
     plan: free
     region: virginia
+    # Without this the service stays pinned to whichever branch the Blueprint was
+    # first created from, so a manual deploy silently republishes stale code.
+    branch: main
     rootDir: backend
     buildCommand: pip install -r requirements.txt
     startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT --workers 1 --no-access-log --no-proxy-headers
@@ -28,6 +31,7 @@ services:
   - type: web
     name: api-pulse-web
     runtime: static
+    branch: main
     rootDir: frontend
     buildCommand: npm ci && npm run build
     staticPublishPath: ./dist
