@@ -6,5 +6,14 @@ const historyDateFormatter = new Intl.DateTimeFormat("en-US", {
 });
 
 export function formatHistoryDate(value) {
-  return historyDateFormatter.format(new Date(value));
+  // new Date(null) silently becomes the epoch, so anything that is not a timestamp
+  // string or number is rejected before parsing.
+  if (typeof value !== "string" && typeof value !== "number") {
+    return "N/A";
+  }
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) {
+    return "N/A";
+  }
+  return historyDateFormatter.format(parsed);
 }

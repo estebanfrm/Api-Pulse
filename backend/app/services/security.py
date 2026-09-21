@@ -1,6 +1,6 @@
 import ipaddress
 import socket
-from urllib.parse import urlparse
+from urllib.parse import urlsplit, urlunsplit
 
 
 class SecurityValidationError(ValueError):
@@ -19,12 +19,32 @@ BLOCKED_HOSTNAMES = {"localhost"}
 ALLOWED_SCHEMES = {"http", "https"}
 
 
+def redact_url_credentials(url: str) -> str:
+    """Drop any user:password@ prefix so the stored history never keeps a secret.
+
+    The request itself still uses the URL as entered; only the persisted and returned
+    value is redacted.
+    """
+    candidate = url.strip()
+    try:
+        parsed = urlsplit(candidate)
+        if not parsed.username and not parsed.password:
+            return candidate
+        hostname = parsed.hostname or ""
+        netloc = f"[{hostname}]" if ":" in hostname else hostname
+        if parsed.port:
+            netloc = f"{netloc}:{parsed.port}"
+    except ValueError:
+        return candidate
+    return urlunsplit((parsed.scheme, netloc, parsed.path, parsed.query, parsed.fragment))
+
+
 def validate_public_url(url: str) -> str:
     candidate = url.strip()
     if not candidate:
         raise UrlFormatError("Invalid URL format. Enter a full http or https URL.")
 
-    parsed = urlparse(candidate)
+    parsed = urlsplit(candidate)
     if parsed.scheme.lower() not in ALLOWED_SCHEMES:
         raise UrlFormatError("Invalid URL format. Use a URL that starts with http:// or https://.")
     if not parsed.netloc:

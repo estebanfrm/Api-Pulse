@@ -230,3 +230,24 @@ def test_global_limit_applies_across_client_keys(monkeypatch: pytest.MonkeyPatch
     assert exc_info.value.status_code == 429
     assert list(limiter._by_client) == ["first-client"]
     assert "second-client" not in limiter._active_by_client
+
+
+def test_demo_host_is_matched_case_insensitively(demo_client: TestClient) -> None:
+    response = _post(demo_client, "https://DEMO.API-PULSE.INVALID/echo")
+
+    assert response.status_code == 200
+    check = response.json()["check"]
+    assert check["success"] is True
+    assert check["url"] == "https://demo.api-pulse.invalid/echo"
+
+
+def test_request_body_is_bounded_on_the_trailing_slash_path(demo_client: TestClient) -> None:
+    response = demo_client.post(
+        "/api/checks/",
+        content=b"x" * (settings.demo_max_request_bytes + 1),
+        headers={"content-type": "application/json"},
+        follow_redirects=False,
+    )
+
+    assert response.status_code == 413
+    assert demo_client.get("/api/checks").json() == []

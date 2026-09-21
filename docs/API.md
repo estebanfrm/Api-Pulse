@@ -16,7 +16,9 @@ Ejecuta `SELECT 1` contra PostgreSQL y devuelve `{"status":"ready"}` con HTTP 20
 
 ## POST /api/checks
 
-En modo público (`PUBLIC_DEMO=true`, valor predeterminado), `url` solo acepta los cuatro escenarios canónicos de `https://demo.api-pulse.invalid`: `/echo`, `/status/404`, `/status/500` y `/redirect`. Se ejecutan con un transporte HTTP simulado dentro del proceso: **no hay resolución DNS ni conexión saliente**. El hostname `.invalid` es un identificador de escenario, no un sitio que el visitante deba abrir. El modo de desarrollo (`PUBLIC_DEMO=false`) conserva las URLs HTTP(S) arbitrarias y los controles previos, pero no debe desplegarse públicamente.
+`/api/checks` y `/api/checks/` se atienden igual: la aplicación desactiva la redirección de barra final para no emitir un `Location` con esquema `http` cuando el proceso corre detrás de un proxy TLS con `--no-proxy-headers`. Cualquier otra ruta con barra final sobrante devuelve 404.
+
+En modo público (`PUBLIC_DEMO=true`, valor predeterminado), `url` solo acepta los cuatro escenarios canónicos de `https://demo.api-pulse.invalid`: `/echo`, `/status/404`, `/status/500` y `/redirect`. El esquema y el host se comparan sin distinguir mayúsculas; la ruta sí distingue. Se ejecutan con un transporte HTTP simulado dentro del proceso: **no hay resolución DNS ni conexión saliente**. El hostname `.invalid` es un identificador de escenario, no un sitio que el visitante deba abrir. El modo de desarrollo (`PUBLIC_DEMO=false`) conserva las URLs HTTP(S) arbitrarias y los controles previos, pero no debe desplegarse públicamente.
 
 Ejecuta una solicitud y guarda su resultado. Ejemplo para un GET público:
 
@@ -35,8 +37,10 @@ Ejecuta una solicitud y guarda su resultado. Ejemplo para un GET público:
 | --- | --- |
 | url | String obligatorio, 1–2048 caracteres; en modo público debe ser un escenario canónico sin query, fragmento, credenciales ni puerto |
 | method | GET, POST, PUT o DELETE; minúsculas se normalizan |
-| headers | Objeto opcional/null; nombres no vacíos; valores escalares convertidos a string; null a string vacío |
+| headers | Objeto opcional/null; nombres no vacíos; valores escalares convertidos a string; null a string vacío. Nombres y valores deben usar ASCII imprimible: se rechaza con 422 cualquier carácter de control (incluidos `\r` y `\n`) o no ASCII, salvo el tabulador |
 | body | Objeto opcional/null; listas y valores escalares se rechazan |
+
+El `url` que se persiste y se devuelve nunca conserva credenciales: un prefijo `usuario:contraseña@` se elimina antes de guardar, aunque la solicitud saliente sí use la URL tal como se recibió. En modo público se guarda además la URL canónica del escenario, no la enviada.
 
 GET no envía cuerpo. POST, PUT y DELETE envían `body` como JSON cuando procede. La validación del frontend permite objetos JSON, pero la validación final de cabeceras está en el backend.
 

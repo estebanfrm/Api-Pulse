@@ -7,7 +7,8 @@ import httpx
 
 from app.services.security import BlockedTargetError
 
-DEMO_ORIGIN = "https://demo.api-pulse.invalid"
+DEMO_HOST = "demo.api-pulse.invalid"
+DEMO_ORIGIN = f"https://{DEMO_HOST}"
 DEMO_PATHS = frozenset({"/echo", "/status/404", "/status/500", "/redirect"})
 DEMO_URLS = frozenset(f"{DEMO_ORIGIN}{path}" for path in DEMO_PATHS)
 BLOCKED_URL = f"{DEMO_ORIGIN}/blocked"
@@ -18,10 +19,12 @@ def validate_demo_url(url: str) -> str:
         parsed = urlsplit(url.strip())
     except ValueError as exc:
         raise BlockedTargetError("Blocked target. Choose one of the demo scenarios.") from exc
+    # Scheme and host are compared case-insensitively, as RFC 3986 requires; the path
+    # stays case-sensitive so only the four listed scenarios match.
     if (
-        parsed.scheme != "https"
-        or parsed.hostname != "demo.api-pulse.invalid"
-        or parsed.netloc != "demo.api-pulse.invalid"
+        parsed.scheme.lower() != "https"
+        or parsed.hostname != DEMO_HOST
+        or parsed.netloc.lower() != DEMO_HOST
         or parsed.path not in DEMO_PATHS
         or parsed.query
         or parsed.fragment
