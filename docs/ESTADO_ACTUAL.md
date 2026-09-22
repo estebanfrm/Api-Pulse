@@ -33,8 +33,8 @@
 5. **CI ampliada y aprobada.** La primera CI del PR #4 falló en `npm audit` por respuestas 503/400 del registro; se resolvió en reintento sin cambiar dependencias. La CI final de T08 y la del merge `0cb28cf` aprobaron los cuatro jobs. La auditoría local devolvió cero hallazgos. La CI no cubre navegador/Neon; ambos se probaron manualmente en T07. Ver [evidencia](VALIDACION_T07.md).
 6. **Avisos de deprecación en pruebas.** T09 migró `on_event` a `lifespan`; pytest ya solo informa el aviso de `BlockingPortal` de Starlette. No es un fallo actual, pero debe considerarse al actualizar ese stack.
 7. **Avisos de dependencias cerrados.** `fastapi==0.115.6` anclaba `starlette<0.42.0`, que arrastraba siete avisos GHSA (tres HIGH); se comprobó uno por uno que ninguno era alcanzable aquí. `requirements.txt` pasa a `fastapi==0.141.1` (`starlette 1.6.0`, `anyio 4.15.1`, sin avisos) y la CI incorpora `pip-audit`. Ver T10.
-8. **Servicios de Render anclados a una rama obsoleta.** `render.yaml` no fijaba `branch`, así que los servicios seguían `codex/api-pulse-t07-publication`, ocho commits por detrás de `main`, y un despliegue manual republicaba código antiguo sin error visible. Corregido en el repositorio; queda ajustar la rama en el panel. Ver T11.
-9. **Correcciones de T09 y T10 sin desplegar.** Las correcciones de la auditoría T09 están en el worktree y no se han publicado. El sitio y la API en Render siguen sirviendo `0cb28cf`/`a32bc4f`; `autoDeployTrigger: "off"` exige un despliegue manual para que lleguen a la demo pública.
+8. **Servicios de Render re-anclados a `main` y desplegados.** `render.yaml` no fijaba `branch`, así que los servicios seguían `codex/api-pulse-t07-publication`, ocho commits por detrás de `main`. El 2026-09-22 se cambiaron a `main`, se desplegaron desde `7460134` y se verificaron en producción. El Blueprint sigue en la rama antigua. Ver T11.
+9. **Correcciones de T09 y T10 desplegadas el 2026-09-22.** La API y el sitio sirven `7460134` (merge del PR #6). `autoDeployTrigger: "off"` se mantiene: los próximos cambios siguen exigiendo un despliegue manual.
 
 ## T01 — Pruebas y calidad
 
@@ -375,7 +375,7 @@ El job `Python audit` ejecuta `pip-audit -r backend/requirements.txt` en un ento
 
 ## T11 — Los servicios de Render apuntaban a una rama obsoleta
 
-**Estado: corregido en el repositorio el 2026-09-20; requiere una acción en el panel de Render.**
+**Estado: servicios corregidos y desplegados el 2026-09-22; verificado en producción. Queda por decidir el anclaje del Blueprint.**
 
 Tras fusionar el [PR #6](https://github.com/estebanfrm/Api-Pulse/pull/6) en `main` (merge `7460134`, CI de cinco jobs aprobada), un despliegue manual de `api-pulse-web` publicó `a4d6be2`, no `main`. El panel mostraba el servicio siguiendo `codex/api-pulse-t07-publication`, **ocho commits por detrás de `main`** y sin ninguna de las correcciones de T09, T10 ni la actualización de FastAPI.
 
@@ -383,9 +383,26 @@ Tras fusionar el [PR #6](https://github.com/estebanfrm/Api-Pulse/pull/6) en `mai
 
 **Corrección:** ambos servicios fijan `branch: main` en `render.yaml`.
 
-**Acción manual pendiente:** un cambio de `branch` en el Blueprint solo se aplica cuando Render lo sincroniza, y los servicios ya quedaron anclados. Hay que corregir la rama en Settings de `api-pulse-api` y `api-pulse-web` antes del despliegue. El servicio de la API además debe limpiar la caché de compilación para recoger `fastapi==0.141.1`.
+**Acción en el panel, hecha el 2026-09-22:** con autorización del usuario, la rama de `api-pulse-api` y de `api-pulse-web` se cambió de `codex/api-pulse-t07-publication` a `main` en Settings. La API se desplegó con *Clear build cache & deploy* y el sitio con *Deploy latest commit*, ambos desde `7460134`. La API tardó 1 min 14 s y el log muestra la instalación de las nuevas `starlette` y `fastapi`; el sitio tardó 19,9 s y compiló `assets/index-pdcEHYmR.js`.
 
-**Verificación en producción, pendiente:** `GET /api/checks/` sin `Location` hacia `http://`, una cabecera no ASCII con 422, y la insignia recuperándose tras un arranque en frío. Al cierre de este bloque, `https://api-pulse-api.onrender.com/api/checks/` seguía respondiendo `307` hacia `http://`.
+**Verificación en producción:**
+
+| Comprobación | Antes | Después |
+| --- | --- | --- |
+| `GET /api/checks/` | `307` con `location: http://…` | `200`, sin `Location` |
+| Cabecera con `\r\n` en `POST /api/checks` | Aceptada | `422` con el mensaje de ASCII imprimible |
+| `https://DEMO.API-PULSE.INVALID/echo` | Bloqueada | `success=true`, URL canónica, `200` |
+| `GET /health/` | `307` hacia `http://` | `404`, sin `Location` |
+| `/health` y `/ready` | `ok` / `ready` | `ok` / `ready` |
+| Preflight CORS desde el sitio | `GET, POST` y origen del sitio | Sin cambios |
+| Bundle servido por el sitio | `a4d6be2` | `index-pdcEHYmR.js`, el mismo que compiló el despliegue |
+| JSON inválido en «Headers JSON» y «Send» | Error fuera de pantalla | `role="alert"` justo bajo «Send», observado en Chrome |
+| Promedio de latencia con respuestas sintéticas | «0 ms avg» | «<1 ms avg» |
+| Petición válida de extremo a extremo | — | `Response received`, `200`, fila nueva en el historial, insignia `Online` |
+
+La recuperación de la insignia tras un arranque en frío con respuestas fuera de orden no se puede provocar a voluntad contra el servicio público; queda cubierta por las pruebas de `useApiDashboard.test.js`, y el bundle desplegado es el que las contiene.
+
+**Riesgo abierto: el Blueprint sigue anclado.** El Blueprint `API Pulse` continúa siguiendo `codex/api-pulse-t07-publication` (última sincronización hace un día). Su `render.yaml` es idéntico al de `main` y no declara `branch`, así que una sincronización futura podría devolver los servicios a esa rama. La corrección duradera es fusionar este cambio en `main`, que fija `branch: main` en ambos servicios, y apuntar después el Blueprint a `main`. No se hizo sin confirmación porque fusiona en `main` y dispara una sincronización de infraestructura.
 
 ## Historial comprobado con Git
 
@@ -403,7 +420,7 @@ Estos nombres de fases provienen de commits. La numeración de validaciones del 
 
 ## Siguiente punto de entrada
 
-Decidir la actualización de FastAPI propuesta en T10 y desplegar manualmente en Render las correcciones de T09 y T10 (Blueprint con `autoDeployTrigger: "off"`), repitiendo sobre la demo publicada las comprobaciones de barra final, cabeceras rechazadas, visibilidad del error del formulario y recuperación de la insignia tras un arranque en frío. No queda un bloque obligatorio T00–T08. Como seguimiento opcional, vigilar cuotas gratuitas, observar la poda tras 24 horas reales, medir aislamiento de cuotas entre visitantes distintos y preparar migraciones explícitas antes de cambios de esquema. No seleccionar servicios pagados ni ampliar la demo a destinos arbitrarios sin una nueva decisión. La aceptación completa está en [el plan](PLAN_DE_CIERRE.md).
+Fusionar en `main` el cambio que fija `branch: main` en `render.yaml` y apuntar el Blueprint `API Pulse` a `main`, para que una sincronización no devuelva los servicios a `codex/api-pulse-t07-publication`. La demo pública ya sirve `7460134` y está verificada. No queda un bloque obligatorio T00–T08. Como seguimiento opcional, vigilar cuotas gratuitas, observar la poda tras 24 horas reales, medir aislamiento de cuotas entre visitantes distintos y preparar migraciones explícitas antes de cambios de esquema. No seleccionar servicios pagados ni ampliar la demo a destinos arbitrarios sin una nueva decisión. La aceptación completa está en [el plan](PLAN_DE_CIERRE.md).
 
 ## Comprobación de la entrega documental
 
