@@ -33,7 +33,8 @@
 5. **CI ampliada y aprobada.** La primera CI del PR #4 falló en `npm audit` por respuestas 503/400 del registro; se resolvió en reintento sin cambiar dependencias. La CI final de T08 y la del merge `0cb28cf` aprobaron los cuatro jobs. La auditoría local devolvió cero hallazgos. La CI no cubre navegador/Neon; ambos se probaron manualmente en T07. Ver [evidencia](VALIDACION_T07.md).
 6. **Avisos de deprecación en pruebas.** T09 migró `on_event` a `lifespan`; pytest ya solo informa el aviso de `BlockingPortal` de Starlette. No es un fallo actual, pero debe considerarse al actualizar ese stack.
 7. **Avisos de dependencias cerrados.** `fastapi==0.115.6` anclaba `starlette<0.42.0`, que arrastraba siete avisos GHSA (tres HIGH); se comprobó uno por uno que ninguno era alcanzable aquí. `requirements.txt` pasa a `fastapi==0.141.1` (`starlette 1.6.0`, `anyio 4.15.1`, sin avisos) y la CI incorpora `pip-audit`. Ver T10.
-8. **Correcciones de T09 y T10 sin desplegar.** Las correcciones de la auditoría T09 están en el worktree y no se han publicado. El sitio y la API en Render siguen sirviendo `0cb28cf`/`a32bc4f`; `autoDeployTrigger: "off"` exige un despliegue manual para que lleguen a la demo pública.
+8. **Servicios de Render re-anclados a `main` y desplegados.** `render.yaml` no fijaba `branch`, así que los servicios seguían `codex/api-pulse-t07-publication`, ocho commits por detrás de `main`. El 2026-09-22 se cambiaron a `main`, se desplegaron desde `7460134` y se verificaron en producción; el Blueprint, con *Auto Sync*, también sigue ahora `main`. Ver T11.
+9. **Correcciones de T09 y T10 desplegadas el 2026-09-22.** La API y el sitio sirven `7460134` (merge del PR #6). `autoDeployTrigger: "off"` se mantiene: los próximos cambios siguen exigiendo un despliegue manual.
 
 ## T01 — Pruebas y calidad
 
@@ -372,6 +373,47 @@ El job `Python audit` ejecuta `pip-audit -r backend/requirements.txt` en un ento
 - Docker Engine no estaba disponible, así que no se repitió el smoke de PostgreSQL ni el stack de Compose en ejecución.
 - No se desplegó nada; la demo pública sigue con el código anterior a T09.
 
+## T11 — Los servicios de Render apuntaban a una rama obsoleta
+
+**Estado: servicios y Blueprint re-anclados a `main` el 2026-09-22; servicios desplegados y verificados en producción.**
+
+Tras fusionar el [PR #6](https://github.com/estebanfrm/Api-Pulse/pull/6) en `main` (merge `7460134`, CI de cinco jobs aprobada), un despliegue manual de `api-pulse-web` publicó `a4d6be2`, no `main`. El panel mostraba el servicio siguiendo `codex/api-pulse-t07-publication`, **ocho commits por detrás de `main`** y sin ninguna de las correcciones de T09, T10 ni la actualización de FastAPI.
+
+**Causa:** `render.yaml` no declaraba `branch`, así que cada servicio conservó la rama desde la que se creó el Blueprint. El despliegue manual funcionaba correctamente; reeditaba el mismo código antiguo. El síntoma es silencioso: no hay error, y el servicio queda `Live` con un commit válido pero caduco.
+
+**Corrección:** ambos servicios fijan `branch: main` en `render.yaml`.
+
+**Acción en el panel, hecha el 2026-09-22:** con autorización del usuario, la rama de `api-pulse-api` y de `api-pulse-web` se cambió de `codex/api-pulse-t07-publication` a `main` en Settings. La API se desplegó con *Clear build cache & deploy* y el sitio con *Deploy latest commit*, ambos desde `7460134`. La API tardó 1 min 14 s y el log muestra la instalación de las nuevas `starlette` y `fastapi`; el sitio tardó 19,9 s y compiló `assets/index-pdcEHYmR.js`.
+
+**Verificación en producción:**
+
+| Comprobación | Antes | Después |
+| --- | --- | --- |
+| `GET /api/checks/` | `307` con `location: http://…` | `200`, sin `Location` |
+| Cabecera con `\r\n` en `POST /api/checks` | Aceptada | `422` con el mensaje de ASCII imprimible |
+| `https://DEMO.API-PULSE.INVALID/echo` | Bloqueada | `success=true`, URL canónica, `200` |
+| `GET /health/` | `307` hacia `http://` | `404`, sin `Location` |
+| `/health` y `/ready` | `ok` / `ready` | `ok` / `ready` |
+| Preflight CORS desde el sitio | `GET, POST` y origen del sitio | Sin cambios |
+| Bundle servido por el sitio | `a4d6be2` | `index-pdcEHYmR.js`, el mismo que compiló el despliegue |
+| JSON inválido en «Headers JSON» y «Send» | Error fuera de pantalla | `role="alert"` justo bajo «Send», observado en Chrome |
+| Promedio de latencia con respuestas sintéticas | «0 ms avg» | «<1 ms avg» |
+| Petición válida de extremo a extremo | — | `Response received`, `200`, fila nueva en el historial, insignia `Online` |
+
+La recuperación de la insignia tras un arranque en frío con respuestas fuera de orden no se puede provocar a voluntad contra el servicio público; queda cubierta por las pruebas de `useApiDashboard.test.js`, y el bundle desplegado es el que las contiene.
+
+**Blueprint re-anclado.** El Blueprint `API Pulse` también seguía `codex/api-pulse-t07-publication` y tiene *Auto Sync* activado, así que una sincronización futura podría haber devuelto los servicios a esa rama. Con confirmación del usuario, su rama se cambió a `main` en Settings. Antes se comprobó que `render.yaml` era idéntico en ambas ramas, de modo que el cambio no alteraba la configuración de ningún servicio; tampoco disparó una sincronización (la última sigue siendo `98cb6f9`). Al fusionar este cambio, *Auto Sync* leerá de `main` un `render.yaml` que ya fija `branch: main` en ambos servicios.
+
+## T12 — Favicon
+
+**Estado: añadido en el repositorio el 2026-09-22; se publica con el próximo despliegue del sitio.**
+
+A petición del usuario. `frontend/public/favicon.svg` dibuja una línea de pulso con el acento de la interfaz (`#6ee7b7`) sobre el color de panel (`#181b20`), los mismos tokens de `main.css`. Se revisó una hoja de muestra a 16, 32, 48, 64 y 180 px sobre barras de pestañas claras y oscuras: la línea sigue siendo legible a 16 px.
+
+Los formatos ráster se generan con la misma geometría: `favicon.ico` con 16, 32 y 48 px para navegadores y rastreadores que todavía piden `/favicon.ico`, y `apple-touch-icon.png` de 180 px a sangre completa, porque iOS aplica su propia máscara. `index.html` enlaza los tres, primero el `.ico`, para que los navegadores que entienden SVG elijan el vectorial. El `Dockerfile` de desarrollo copia ahora `public/`; sin eso, el frontend de Compose serviría la página sin iconos.
+
+**Comprobaciones:** `npm run build` coloca los tres archivos en `dist/`; `npm test` (12 aprobados) y `npm run lint` aprobados.
+
 ## Historial comprobado con Git
 
 | Commit | Fecha local | Resultado |
@@ -388,7 +430,7 @@ Estos nombres de fases provienen de commits. La numeración de validaciones del 
 
 ## Siguiente punto de entrada
 
-Decidir la actualización de FastAPI propuesta en T10 y desplegar manualmente en Render las correcciones de T09 y T10 (Blueprint con `autoDeployTrigger: "off"`), repitiendo sobre la demo publicada las comprobaciones de barra final, cabeceras rechazadas, visibilidad del error del formulario y recuperación de la insignia tras un arranque en frío. No queda un bloque obligatorio T00–T08. Como seguimiento opcional, vigilar cuotas gratuitas, observar la poda tras 24 horas reales, medir aislamiento de cuotas entre visitantes distintos y preparar migraciones explícitas antes de cambios de esquema. No seleccionar servicios pagados ni ampliar la demo a destinos arbitrarios sin una nueva decisión. La aceptación completa está en [el plan](PLAN_DE_CIERRE.md).
+Tras fusionar el cambio de T11 y T12, desplegar manualmente `api-pulse-web` para publicar el favicon y comprobar que `/favicon.svg`, `/favicon.ico` y `/apple-touch-icon.png` responden 200 con su tipo. La API no necesita redespliegue: T12 no toca el backend. No queda un bloque obligatorio T00–T08. Como seguimiento opcional, vigilar cuotas gratuitas, observar la poda tras 24 horas reales, medir aislamiento de cuotas entre visitantes distintos y preparar migraciones explícitas antes de cambios de esquema. No seleccionar servicios pagados ni ampliar la demo a destinos arbitrarios sin una nueva decisión. La aceptación completa está en [el plan](PLAN_DE_CIERRE.md).
 
 ## Comprobación de la entrega documental
 

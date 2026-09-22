@@ -7,6 +7,7 @@ RUN npm ci
 
 COPY index.html vite.config.js eslint.config.js ./
 COPY src ./src
+COPY public ./public
 
 EXPOSE 5173
 

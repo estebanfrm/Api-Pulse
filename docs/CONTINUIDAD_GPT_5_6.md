@@ -58,7 +58,7 @@ Concurrencia, fuzzing y cadena de suministro. Siete defectos más corregidos: do
 
 ## Siguiente acción si se retoma
 
-**Pendiente concreto:** desplegar manualmente en Render las correcciones de T09 y T10, incluida la actualización de FastAPI, reconstruyendo el entorno del servicio y repetir contra la demo publicada la comprobación de `/api/checks/`, las cabeceras rechazadas con 422 y la visibilidad del error del formulario. Después, si el usuario solicita seguimiento, comprobar cuotas gratuitas y observar la poda de 24 horas en Neon; más adelante, medir la separación de cuotas entre visitantes detrás del proxy y añadir migraciones explícitas antes de cambiar columnas. No habilitar destinos arbitrarios ni servicios pagados sin decisión nueva.
+**Pendiente concreto:** la demo pública sirve `7460134` desde el 2026-09-22, verificada en producción. Servicios y Blueprint siguen `main` (ver T11). Tras fusionar T11 y T12, desplegar `api-pulse-web` para publicar el favicon y comprobar que sus tres archivos responden 200. Después, si el usuario solicita seguimiento, comprobar cuotas gratuitas y observar la poda de 24 horas en Neon; más adelante, medir la separación de cuotas entre visitantes detrás del proxy y añadir migraciones explícitas antes de cambiar columnas. No habilitar destinos arbitrarios ni servicios pagados sin decisión nueva.
 
 ## Lo que debe recordarse
 
