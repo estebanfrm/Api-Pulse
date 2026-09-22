@@ -50,7 +50,7 @@
             <td><span class="method-tag">{{ item.method }}</span></td>
             <td class="url-cell" :title="item.error_message || item.url">{{ item.url }}</td>
             <td><span class="http-status" :class="statusClass(item.status_code)">{{ item.status_code ?? "N/A" }}</span></td>
-            <td>{{ formatTime(item.response_time_ms) }}</td>
+            <td>{{ formatDuration(item.response_time_ms) }}</td>
             <td>{{ formatHistoryDate(item.created_at) }}</td>
           </tr>
         </tbody>
@@ -60,6 +60,7 @@
 </template>
 
 <script setup>
+import { formatDuration } from "./formatDuration.js";
 import { formatHistoryDate } from "./historyDate.js";
 
 defineProps({
@@ -82,10 +83,6 @@ defineProps({
 });
 
 const emit = defineEmits(["retry"]);
-
-function formatTime(value) {
-  return Number.isFinite(value) ? `${value} ms` : "N/A";
-}
 
 function statusClass(status) {
   if (!status) {

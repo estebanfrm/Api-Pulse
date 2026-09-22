@@ -26,6 +26,8 @@
 <script setup>
 import { computed } from "vue";
 
+import { formatDuration } from "./formatDuration.js";
+
 const props = defineProps({
   history: {
     type: Array,
@@ -56,22 +58,12 @@ const pointList = computed(() => {
 
 const points = computed(() => pointList.value.map((point) => `${point.x},${point.y}`).join(" "));
 
-const averageTime = computed(() => {
+const averageLabel = computed(() => {
   const data = successfulChecks.value;
   if (!data.length) {
-    return 0;
+    return formatDuration(null);
   }
   const total = data.reduce((sum, item) => sum + item.response_time_ms, 0);
-  return total / data.length;
-});
-
-// The demo scenarios answer in well under a millisecond, so rounding alone would
-// display "0 ms avg" next to a chart that clearly shows movement.
-const averageLabel = computed(() => {
-  const average = averageTime.value;
-  if (average > 0 && average < 1) {
-    return "<1 ms";
-  }
-  return `${Math.round(average)} ms`;
+  return formatDuration(total / data.length);
 });
 </script>

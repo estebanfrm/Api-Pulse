@@ -41,7 +41,8 @@
         <strong>{{ check.error_message }}</strong>
       </div>
 
-      <pre class="response-body">{{ formattedResponse }}</pre>
+      <pre v-if="formattedResponse" class="response-body">{{ formattedResponse }}</pre>
+      <p v-else-if="check.success" class="response-note">The response had no body.</p>
     </div>
     <div v-else class="empty-state">No result yet.</div>
   </section>
@@ -49,6 +50,8 @@
 
 <script setup>
 import { computed } from "vue";
+
+import { formatDuration } from "./formatDuration.js";
 
 const props = defineProps({
   result: {
@@ -84,10 +87,7 @@ const statusClass = computed(() => {
   return "status-5xx";
 });
 
-const formattedTime = computed(() => {
-  const responseTime = check.value?.response_time_ms;
-  return Number.isFinite(responseTime) ? `${responseTime} ms` : "N/A";
-});
+const formattedTime = computed(() => formatDuration(check.value?.response_time_ms));
 
 const httpErrorResponse = computed(() => {
   const status = check.value?.status_code;

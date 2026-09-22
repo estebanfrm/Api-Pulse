@@ -146,3 +146,11 @@ jobs:
 
       - name: Validate integration compose config
         run: docker compose -p api-pulse-t03 -f compose.integration.yml config --quiet
+
+      # config only checks syntax. Loading vite.config.js inside the image catches a
+      # file the Dockerfile forgot to copy, which otherwise only shows up when the
+      # container starts and exits.
+      - name: Build the development frontend image and load its Vite config
+        run: |
+          docker compose build frontend
+          docker compose run --rm --no-deps frontend npx vite build
