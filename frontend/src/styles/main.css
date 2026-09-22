@@ -87,6 +87,9 @@ h2 {
 
 .insights-grid {
   grid-template-columns: minmax(320px, 0.7fr) minmax(520px, 1.3fr);
+  /* The history grows with every check; stretching the latency card to match
+     left a tall empty panel under a fixed-height chart. */
+  align-items: start;
   margin-top: 16px;
 }
 
