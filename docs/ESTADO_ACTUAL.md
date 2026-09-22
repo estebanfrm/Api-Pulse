@@ -33,7 +33,7 @@
 5. **CI ampliada y aprobada.** La primera CI del PR #4 falló en `npm audit` por respuestas 503/400 del registro; se resolvió en reintento sin cambiar dependencias. La CI final de T08 y la del merge `0cb28cf` aprobaron los cuatro jobs. La auditoría local devolvió cero hallazgos. La CI no cubre navegador/Neon; ambos se probaron manualmente en T07. Ver [evidencia](VALIDACION_T07.md).
 6. **Avisos de deprecación en pruebas.** T09 migró `on_event` a `lifespan`; pytest ya solo informa el aviso de `BlockingPortal` de Starlette. No es un fallo actual, pero debe considerarse al actualizar ese stack.
 7. **Avisos de dependencias cerrados.** `fastapi==0.115.6` anclaba `starlette<0.42.0`, que arrastraba siete avisos GHSA (tres HIGH); se comprobó uno por uno que ninguno era alcanzable aquí. `requirements.txt` pasa a `fastapi==0.141.1` (`starlette 1.6.0`, `anyio 4.15.1`, sin avisos) y la CI incorpora `pip-audit`. Ver T10.
-8. **Servicios de Render re-anclados a `main` y desplegados.** `render.yaml` no fijaba `branch`, así que los servicios seguían `codex/api-pulse-t07-publication`, ocho commits por detrás de `main`. El 2026-09-22 se cambiaron a `main`, se desplegaron desde `7460134` y se verificaron en producción. El Blueprint sigue en la rama antigua. Ver T11.
+8. **Servicios de Render re-anclados a `main` y desplegados.** `render.yaml` no fijaba `branch`, así que los servicios seguían `codex/api-pulse-t07-publication`, ocho commits por detrás de `main`. El 2026-09-22 se cambiaron a `main`, se desplegaron desde `7460134` y se verificaron en producción; el Blueprint, con *Auto Sync*, también sigue ahora `main`. Ver T11.
 9. **Correcciones de T09 y T10 desplegadas el 2026-09-22.** La API y el sitio sirven `7460134` (merge del PR #6). `autoDeployTrigger: "off"` se mantiene: los próximos cambios siguen exigiendo un despliegue manual.
 
 ## T01 — Pruebas y calidad
@@ -375,7 +375,7 @@ El job `Python audit` ejecuta `pip-audit -r backend/requirements.txt` en un ento
 
 ## T11 — Los servicios de Render apuntaban a una rama obsoleta
 
-**Estado: servicios corregidos y desplegados el 2026-09-22; verificado en producción. Queda por decidir el anclaje del Blueprint.**
+**Estado: servicios y Blueprint re-anclados a `main` el 2026-09-22; servicios desplegados y verificados en producción.**
 
 Tras fusionar el [PR #6](https://github.com/estebanfrm/Api-Pulse/pull/6) en `main` (merge `7460134`, CI de cinco jobs aprobada), un despliegue manual de `api-pulse-web` publicó `a4d6be2`, no `main`. El panel mostraba el servicio siguiendo `codex/api-pulse-t07-publication`, **ocho commits por detrás de `main`** y sin ninguna de las correcciones de T09, T10 ni la actualización de FastAPI.
 
@@ -402,7 +402,17 @@ Tras fusionar el [PR #6](https://github.com/estebanfrm/Api-Pulse/pull/6) en `mai
 
 La recuperación de la insignia tras un arranque en frío con respuestas fuera de orden no se puede provocar a voluntad contra el servicio público; queda cubierta por las pruebas de `useApiDashboard.test.js`, y el bundle desplegado es el que las contiene.
 
-**Riesgo abierto: el Blueprint sigue anclado.** El Blueprint `API Pulse` continúa siguiendo `codex/api-pulse-t07-publication` (última sincronización hace un día). Su `render.yaml` es idéntico al de `main` y no declara `branch`, así que una sincronización futura podría devolver los servicios a esa rama. La corrección duradera es fusionar este cambio en `main`, que fija `branch: main` en ambos servicios, y apuntar después el Blueprint a `main`. No se hizo sin confirmación porque fusiona en `main` y dispara una sincronización de infraestructura.
+**Blueprint re-anclado.** El Blueprint `API Pulse` también seguía `codex/api-pulse-t07-publication` y tiene *Auto Sync* activado, así que una sincronización futura podría haber devuelto los servicios a esa rama. Con confirmación del usuario, su rama se cambió a `main` en Settings. Antes se comprobó que `render.yaml` era idéntico en ambas ramas, de modo que el cambio no alteraba la configuración de ningún servicio; tampoco disparó una sincronización (la última sigue siendo `98cb6f9`). Al fusionar este cambio, *Auto Sync* leerá de `main` un `render.yaml` que ya fija `branch: main` en ambos servicios.
+
+## T12 — Favicon
+
+**Estado: añadido en el repositorio el 2026-09-22; se publica con el próximo despliegue del sitio.**
+
+A petición del usuario. `frontend/public/favicon.svg` dibuja una línea de pulso con el acento de la interfaz (`#6ee7b7`) sobre el color de panel (`#181b20`), los mismos tokens de `main.css`. Se revisó una hoja de muestra a 16, 32, 48, 64 y 180 px sobre barras de pestañas claras y oscuras: la línea sigue siendo legible a 16 px.
+
+Los formatos ráster se generan con la misma geometría: `favicon.ico` con 16, 32 y 48 px para navegadores y rastreadores que todavía piden `/favicon.ico`, y `apple-touch-icon.png` de 180 px a sangre completa, porque iOS aplica su propia máscara. `index.html` enlaza los tres, primero el `.ico`, para que los navegadores que entienden SVG elijan el vectorial. El `Dockerfile` de desarrollo copia ahora `public/`; sin eso, el frontend de Compose serviría la página sin iconos.
+
+**Comprobaciones:** `npm run build` coloca los tres archivos en `dist/`; `npm test` (12 aprobados) y `npm run lint` aprobados.
 
 ## Historial comprobado con Git
 
@@ -420,7 +430,7 @@ Estos nombres de fases provienen de commits. La numeración de validaciones del 
 
 ## Siguiente punto de entrada
 
-Fusionar en `main` el cambio que fija `branch: main` en `render.yaml` y apuntar el Blueprint `API Pulse` a `main`, para que una sincronización no devuelva los servicios a `codex/api-pulse-t07-publication`. La demo pública ya sirve `7460134` y está verificada. No queda un bloque obligatorio T00–T08. Como seguimiento opcional, vigilar cuotas gratuitas, observar la poda tras 24 horas reales, medir aislamiento de cuotas entre visitantes distintos y preparar migraciones explícitas antes de cambios de esquema. No seleccionar servicios pagados ni ampliar la demo a destinos arbitrarios sin una nueva decisión. La aceptación completa está en [el plan](PLAN_DE_CIERRE.md).
+Tras fusionar el cambio de T11 y T12, desplegar manualmente `api-pulse-web` para publicar el favicon y comprobar que `/favicon.svg`, `/favicon.ico` y `/apple-touch-icon.png` responden 200 con su tipo. La API no necesita redespliegue: T12 no toca el backend. No queda un bloque obligatorio T00–T08. Como seguimiento opcional, vigilar cuotas gratuitas, observar la poda tras 24 horas reales, medir aislamiento de cuotas entre visitantes distintos y preparar migraciones explícitas antes de cambios de esquema. No seleccionar servicios pagados ni ampliar la demo a destinos arbitrarios sin una nueva decisión. La aceptación completa está en [el plan](PLAN_DE_CIERRE.md).
 
 ## Comprobación de la entrega documental
 
