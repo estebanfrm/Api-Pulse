@@ -414,6 +414,54 @@ Los formatos ráster se generan con la misma geometría: `favicon.ico` con 16, 3
 
 **Comprobaciones:** `npm run build` coloca los tres archivos en `dist/`; `npm test` (12 aprobados) y `npm run lint` aprobados.
 
+## T13 — Verificación final antes del portafolio
+
+**Estado: completado el 2026-09-22 y 2026-09-23.** Batería completa en los dos entornos a petición del usuario, antes de enlazar el proyecto desde su portafolio.
+
+### Demo publicada
+
+39 comprobaciones de API aprobadas, 0 fallidas: `/health` y `/ready`; los cuatro escenarios con los cuatro métodos; 404, 500 y 302 con `success=true`; host en mayúsculas aceptado; destino externo rechazado sin guardar la URL; 429 al superar la cuota del minuto; 422 en cabecera con CRLF, cabecera no ASCII, método no permitido, cuerpo que no es objeto y `limit` fuera de rango; 413 en `/api/checks` y en `/api/checks/`; historial ordenado, con fecha en zona horaria, sin secretos y solo con URLs canónicas; `/api/checks/` y `/health/` sin redirección; HTTP plano redirigido a HTTPS; preflight CORS aceptado desde el sitio y sin cabecera para un origen ajeno; HSTS, favicons y el paquete JS apuntando a la API HTTPS.
+
+En navegador se recorrieron los cuatro escenarios, las validaciones del formulario y la vista móvil a 375 px, sin errores de consola ni desbordamiento horizontal.
+
+### Stack local de integración
+
+39 comprobaciones aprobadas, 0 fallidas, contra PostgreSQL 16 y el destino controlado del proyecto: cuatro métodos con cuerpo, cabecera y query verificados en el eco; 404, 500, 418 y 302 sin seguir la redirección; diez destinos bloqueados, incluidos los nombres internos de Docker `backend` y `postgres`; entradas malformadas registradas como fallo; credenciales de la URL redactadas; 422 de esquema; historial ordenado; preflight CORS desde el frontend local; y un GET real a `https://api.github.com/zen` (HTTP 200 en 274 ms) para comprobar la salida a Internet.
+
+El historial sobrevivió a `restart` con el mismo último id. **El smoke de PostgreSQL se ejecutó por primera vez en local** sobre una base dedicada y temporal creada y eliminada para la prueba: aprobado. También valida el arranque con `lifespan` y la poda contra PostgreSQL real.
+
+### Defectos encontrados y corregidos ([PR #8](https://github.com/estebanfrm/Api-Pulse/pull/8), merge `adf5bf7`)
+
+| # | Defecto | Evidencia | Corrección |
+| --- | --- | --- | --- |
+| 1 | `docker compose up` dejaba el frontend caído: el `Dockerfile` copiaba `vite.config.js` pero no `productionBuild.js`, que ese archivo importa desde T06. El contenedor salía con `Could not resolve "./productionBuild.js"`, así que el recorrido «Ejecutar en local» del README no funcionaba desde T06 | Primer arranque real del stack tras instalar Docker | El `Dockerfile` copia el archivo, y el job de Compose construye la imagen y ejecuta `vite build` dentro. Se comprobó que el control falla con el `Dockerfile` anterior (exit 1) y aprueba con la corrección |
+| 2 | La interfaz mostraba «0 ms» y «0 ms avg»: el backend guarda milisegundos enteros y las respuestas sintéticas quedan en 0 | Demo publicada y captura del README | `formatDuration` compartida por resultado, historial y media: un 0 medido se muestra como «<1 ms» |
+| 3 | Un 302 o un destino bloqueado dejaban un recuadro de respuesta vacío | Demo publicada y stack local | El recuadro solo se pinta con contenido; una respuesta recibida sin cuerpo lo indica |
+| 4 | Los errores de validación llegaban con el prefijo «Value error,» de Pydantic | Cabecera anidada desde la interfaz | `formatApiError`, ahora en su propio módulo y con pruebas, lo elimina |
+| 5 | El panel de latencia se estiraba a la altura del historial y dejaba un hueco vacío bajo la gráfica | Captura de la demo publicada | `align-items: start` en la rejilla de paneles |
+
+### Poda de 24 horas observada en producción
+
+El 2026-09-23, con las últimas comprobaciones registradas el 2026-09-22, el historial de la demo se devolvió **vacío**. Es la primera observación directa de la retención de 24 horas sobre Neon, que hasta ahora solo tenía pruebas automatizadas. El límite documentado en el README se actualizó.
+
+### Capturas del README renovadas
+
+`docs/screenshots/dashboard-public.png` (1536×1478) y `dashboard-compact.png` (800×2375) se rehicieron desde la demo publicada con Chrome sin interfaz y un perfil temporal, sobre el código ya desplegado. Muestran un resultado real, «<1 ms», estados variados en el historial y la gráfica con datos. La captura anterior mostraba «0 ms avg».
+
+### Comprobaciones ejecutadas
+
+- `npm test` 17 aprobados (5 nuevas para `formatDuration` y `formatApiError`), `npm run lint`, `npm run build`.
+- `pytest` 90 aprobados y 1 omitido; el omitido se ejecutó aparte contra PostgreSQL real y aprobó.
+- `docker compose -p api-pulse-t03 -f compose.integration.yml up -d --build --wait` y `restart`, sin eliminar volúmenes ni tocar contenedores de otros proyectos.
+- CI de `main`: cinco jobs aprobados en el merge `adf5bf7`.
+- Despliegue manual de `api-pulse-web` desde `adf5bf7`, 17,3 s.
+
+### No ejecutado
+
+- La insignia «Offline» por respuestas fuera de orden no se puede provocar a voluntad contra el servicio público; queda cubierta por `useApiDashboard.test.js`, y el paquete desplegado es el que contiene esa corrección.
+- El Blueprint no ha vuelto a sincronizar: el log de despliegue advierte que Render no tiene acceso concedido al repositorio en GitHub, así que no recibe avisos de push. Clona igual porque el repositorio es público; si pasara a privado, los despliegues fallarían.
+- No se midió el aislamiento de cuotas entre visitantes distintos detrás del proxy.
+
 ## Historial comprobado con Git
 
 | Commit | Fecha local | Resultado |
@@ -430,7 +478,7 @@ Estos nombres de fases provienen de commits. La numeración de validaciones del 
 
 ## Siguiente punto de entrada
 
-Tras fusionar el cambio de T11 y T12, desplegar manualmente `api-pulse-web` para publicar el favicon y comprobar que `/favicon.svg`, `/favicon.ico` y `/apple-touch-icon.png` responden 200 con su tipo. La API no necesita redespliegue: T12 no toca el backend. No queda un bloque obligatorio T00–T08. Como seguimiento opcional, vigilar cuotas gratuitas, observar la poda tras 24 horas reales, medir aislamiento de cuotas entre visitantes distintos y preparar migraciones explícitas antes de cambios de esquema. No seleccionar servicios pagados ni ampliar la demo a destinos arbitrarios sin una nueva decisión. La aceptación completa está en [el plan](PLAN_DE_CIERRE.md).
+No queda trabajo pendiente para enlazar el proyecto desde el portafolio: la demo publicada sirve `adf5bf7` y quedó verificada en T13. Como seguimiento opcional, conceder acceso al repositorio a la aplicación de Render en GitHub para que el Blueprint vuelva a recibir avisos de push, vigilar las cuotas gratuitas y medir el aislamiento de cuotas entre visitantes detrás del proxy. No queda un bloque obligatorio T00–T08. Como seguimiento opcional, vigilar cuotas gratuitas, observar la poda tras 24 horas reales, medir aislamiento de cuotas entre visitantes distintos y preparar migraciones explícitas antes de cambios de esquema. No seleccionar servicios pagados ni ampliar la demo a destinos arbitrarios sin una nueva decisión. La aceptación completa está en [el plan](PLAN_DE_CIERRE.md).
 
 ## Comprobación de la entrega documental
 
