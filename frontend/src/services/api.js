@@ -1,3 +1,5 @@
+import { formatApiError } from "./apiErrors.js";
+
 const API_BASE_URL = resolveApiBaseUrl();
 
 export async function healthCheck() {
@@ -37,19 +39,6 @@ async function parseBody(response) {
   } catch {
     return text;
   }
-}
-
-function formatApiError(data, status) {
-  if (Array.isArray(data?.detail)) {
-    return data.detail.map((item) => item.msg).join(" ");
-  }
-  if (typeof data?.detail === "string") {
-    return data.detail;
-  }
-  if (typeof data === "string") {
-    return data;
-  }
-  return `Request failed with status ${status}.`;
 }
 
 function resolveApiBaseUrl() {

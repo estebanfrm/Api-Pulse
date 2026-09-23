@@ -5,7 +5,7 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci
 
-COPY index.html vite.config.js eslint.config.js ./
+COPY index.html vite.config.js productionBuild.js eslint.config.js ./
 COPY src ./src
 COPY public ./public
 
