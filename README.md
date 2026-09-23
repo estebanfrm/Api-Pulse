@@ -16,7 +16,7 @@ La demo es anónima y su historial es **compartido**: muestra los 50 registros m
 
 ## Capturas de la demo publicada
 
-Capturas tomadas el 20 de septiembre de 2026 con datos sintéticos. El historial visible cambia a medida que se usa la demo.
+Capturas tomadas el 22 de septiembre de 2026 en la demo publicada, con datos sintéticos. El historial visible cambia a medida que se usa la demo.
 
 ![Panel público de API Pulse: formulario, gráfica e historial](docs/screenshots/dashboard-public.png)
 
@@ -51,7 +51,7 @@ El [workflow de calidad](https://github.com/estebanfrm/Api-Pulse/actions/workflo
 
 - Los tiempos de la demo corresponden a respuestas **sintéticas**, no miden la latencia de una API remota. No hay monitorización programada ni alertas.
 - Se aplican límites de solicitudes, concurrencia y tamaño. Las cuotas viven en memoria de una única instancia; se comprobó un 429 desde un cliente, pero no la separación por IP entre visitantes distintos detrás del proxy.
-- Render y Neon gratuitos pueden entrar en reposo o agotar sus cuotas. No hay garantía de disponibilidad; el uso observado en T07 fue USD 0. La poda de 24 horas/500 registros tiene pruebas automatizadas, pero no se observó todavía durante 24 horas reales en Neon.
+- Render y Neon gratuitos pueden entrar en reposo o agotar sus cuotas. No hay garantía de disponibilidad; el uso observado en T07 fue USD 0. La poda de 24 horas/500 registros tiene pruebas automatizadas y se observó en la demo publicada: un día después, el historial apareció vacío y las comprobaciones del día anterior ya no se devolvían.
 - Los cambios futuros del esquema requieren migraciones: `create_all` solo crea tablas faltantes. La ruta de desarrollo que admite URLs externas mantiene una limitación DNS/conexión y no debe desplegarse públicamente.
 
 Las [limitaciones y siguientes mejoras](docs/ESTADO_ACTUAL.md#hallazgos-prioritarios) están registradas sin presentar capacidades no implementadas como existentes.
